@@ -1,31 +1,26 @@
-name: alwazirchat
-description: Al-Wazir Chat - الفهد
-publish_to: "none"
-
+name: wchat_alwzeer
+description: تطبيق الفهد للمراسلة الفورية
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.8.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
-  cupertino_icons: ^1.0.8
-
-  # قاعدة البيانات المحلية
-  sqflite: ^2.4.2
-  path: ^1.9.1
-  nearby_connections: ^4.3.0
-
-  # المراسلة بين الأجهزة القريبة بدون إنترنت
-  nearby_connections: ^4.3.0
+  cupertino_icons: ^1.0.2
+  firebase_core: ^2.24.2     # لإدارة الاتصال بقاعدة البيانات
+  firebase_auth: ^4.17.8     # المصادقة وتسجيل الدخول برقم الهاتـف أو البريد
+  cloud_firestore: ^4.15.2   # تخزين الرسائل والدردشات الفورية
+  provider: ^6.1.1           # لإدارة الحالة (State Management)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
