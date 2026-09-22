@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // يمكنك هنا تهيئة Firebase إذا أردت ربطه بقاعدة بيانات سحابية
+void main() {
   runApp(const AlWazirChatApp());
 }
 
@@ -12,54 +10,108 @@ class AlWazirChatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Al-Wazir Chat',
       debugShowCheckedModeBanner: false,
-      title: 'تطبيق الفهد',
       theme: ThemeData(
-        primarySwatch: Colors.teal,
-        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
       ),
-      home: const ChatHomeScreen(),
+      home: const ChatHomePage(title: 'Al-Wazir Chat - الدردشة'),
     );
   }
 }
 
-class ChatHomeScreen extends StatelessWidget {
-  const ChatHomeScreen({super.key});
+class ChatHomePage extends StatefulWidget {
+  const ChatHomePage({super.key, required this.title});
+
+  final String title;
+
+  @override
+  State<ChatHomePage> createState() => _ChatHomePageState();
+}
+
+class _ChatHomePageState extends State<ChatHomePage> {
+  final TextEditingController _controller = TextEditingController();
+  final List<String> _messages = [];
+
+  void _sendMessage() {
+    if (_controller.text.trim().isNotEmpty) {
+      setState(() {
+        _messages.add(_controller.text.trim());
+        _controller.clear();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تطبيق الفهد'),
-        backgroundColor: Colors.teal[800],
-        actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
-        ],
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
       ),
-      body: ListView.builder(
-        itemCount: 10, // مثال لعدد المحادثات
-        itemBuilder: (context, index) {
-          return ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Colors.teal,
-              child: Icon(Icons.person, color: Colors.white),
+      body: Column(
+        children: [
+          Expanded(
+            child: _messages.isEmpty
+                .isTrue() // أو ببساطة التحقق من الطول
+                ? const Center(
+                    child: Text(
+                      'أهلاً بك! ابدأ إرسال الرسائل الآن...',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _messages[index],
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: 'اكتب رسالتك هنا...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
             ),
-            title: Text('مستخدم رقم ${index + 1}'),
-            subtitle: const Text('مرحباً! هذه رسالة تجريبية...'),
-            trailing: const Text('10:30 ص', style: TextStyle(color: Colors.grey, fontSize: 12)),
-            onTap: () {
-              // الانتقال لشاشة المحادثة الخاصة
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal[700],
-        child: const Icon(Icons.message, color: Colors.white),
-        onPressed: () {
-          // إضافة محادثة جديدة
-        },
+          ),
+        ],
       ),
     );
   }
