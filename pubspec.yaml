@@ -1,26 +1,28 @@
 name: wchat_alwzeer
-description: تطبيق الفهد للمراسلة الفورية
-publish_to: 'none'
+description: "A new Flutter messaging application project."
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  firebase_core: ^2.24.2     # لإدارة الاتصال بقاعدة البيانات
-  firebase_auth: ^4.17.8     # المصادقة وتسجيل الدخول برقم الهاتـف أو البريد
-  cloud_firestore: ^4.15.2   # تخزين الرسائل والدردشات الفورية
-  provider: ^6.1.1           # لإدارة الحالة (State Management)
+
+  # الأيقونات الأساسية
+  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/
+
+  # أضف مسارات الصور أو الأصول هنا إذا احتجت لاحقاً
+  # assets:
+  #   - assets/images/
