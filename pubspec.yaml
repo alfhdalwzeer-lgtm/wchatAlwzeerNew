@@ -1,5 +1,8 @@
+cd ~/wchatAlwzeerPro
+cp pubspec.yaml pubspec.yaml.OLD
+cat > pubspec.yaml <<'EOF'
 name: al_wazir_chat
-description: تطبيق مراسلة متكامل للشات والطاقة الشمسية والاتصال.
+description: تطبيق الفهد للدردشة
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,7 +13,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  provider: ^6.1.1 # لإدارة الحالة وتغيير الثيمات والشاشات
 
 dev_dependencies:
   flutter_test:
@@ -19,6 +21,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # أضف مسارات الصور أو الأيقونات هنا إذا احتجت لاحقاً
-  # assets:
-  #   - assets/images/
+EOF
