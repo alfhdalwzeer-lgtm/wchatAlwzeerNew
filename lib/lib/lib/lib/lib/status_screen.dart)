@@ -1,0 +1,45 @@
+import 'package:flutter/material.dart';
+
+class StatusScreen extends StatelessWidget {
+  const StatusScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(
+        children: [
+          ListTile(
+            leading: Stack(
+              children: const [
+                CircleAvatar(backgroundColor: Color(0xFFFFB300), child: Icon(Icons.person, color: Colors.black)),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: CircleAvatar(radius: 8, backgroundColor: Colors.green),
+                ),
+              ],
+            ),
+            title: const Text('حالتي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            subtitle: const Text('اضغط لإضافة حالة جديدة', style: TextStyle(color: Colors.grey)),
+            onTap: () {},
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('التحديثات الحديثة', style: TextStyle(color: Color(0xFFFFB300), fontWeight: FontWeight.bold)),
+          ),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40.0),
+              child: Text('لا توجد حالات بعد', style: TextStyle(color: Colors.grey)),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFFFB300),
+        child: const Icon(Icons.camera_alt, color: Colors.black),
+        onPressed: () {},
+      ),
+    );
+  }
+}
