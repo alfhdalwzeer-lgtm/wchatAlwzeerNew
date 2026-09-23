@@ -1,28 +1,21 @@
-name: wchat_alwzeer
-description: "A new Flutter messaging application project."
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+name: al_fahd_chat
+description: تطبيق الفهد للدردشة والتواصل الذكي.
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # الأيقونات الأساسية
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
-
-  # أضف مسارات الصور أو الأصول هنا إذا احتجت لاحقاً
-  # assets:
-  #   - assets/images/
