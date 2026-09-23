@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'chats_screen.dart';
+import 'status_screen.dart';
+import 'settings_screen.dart';
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const ChatsScreen(),
+    const Center(child: Text('المجموعات', style: TextStyle(color: Colors.white, fontSize: 18))),
+    const Center(child: Text('المكالمات', style: TextStyle(color: Colors.white, fontSize: 18))),
+    const StatusScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الفهد'),
+        actions: [
+          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.camera_alt_outlined), onPressed: () {}),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'settings') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'settings', child: Text('الإعدادات')),
+            ],
+          ),
+        ],
+      ),
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFFFFB300),
+        unselectedItemColor: Colors.grey,
+        backgroundColor: const Color(0xFF161D2A),
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'الدردسات'),
+          BottomNavigationBarItem(icon: Icon(Icons.group), label: 'المجموعات'),
+          BottomNavigationBarItem(icon: Icon(Icons.call), label: 'المكالمات'),
+          BottomNavigationBarItem(icon: Icon(Icons.donut_large), label: 'الحالة'),
+        ],
+      ),
+    );
+  }
+}
