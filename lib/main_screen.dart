@@ -3,76 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// ===============================================================
-/// 🐆 Al-Wazir Chat / الفهد
-/// main_screen.dart
-///
-/// - واجهة RTL عربية
-/// - تخزين دائم للبيانات
-/// - الدردشات والرسائل
-/// - المجموعات
-/// - الحالات
-/// - القنوات
-/// - سجل المكالمات
-/// - الإعدادات والملف الشخصي
-///
-/// ملاحظة:
-/// هذا الملف يبني النواة المحلية الحقيقية للتطبيق.
-/// خدمات Bluetooth / Wi-Fi Direct / Firebase / التسجيل الصوتي
-/// سيتم ربطها بالـ APIs الموجودة في pubspec في الخطوات التالية.
-/// ===============================================================
-
-const Color kGold = Color(0xFFD4AF37);
-const Color kBackground = Color(0xFF0D131A);
-const Color kAppBar = Color(0xFF101820);
-const Color kPanel = Color(0xFF18232C);
-const Color kPanelLight = Color(0xFF202E38);
-
-String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
-
-String _dateTimeText(DateTime date) {
-  final h = date.hour.toString().padLeft(2, '0');
-  final m = date.minute.toString().padLeft(2, '0');
-  return '$h:$m';
-}
-
-String _dayText(DateTime date) {
-  final now = DateTime.now();
-
-  if (date.year == now.year &&
-      date.month == now.month &&
-      date.day == now.day) {
-    return _dateTimeText(date);
-  }
-
-  return '${date.day}/${date.month}';
-}
-
-String _relativeTime(DateTime date) {
-  final difference = DateTime.now().difference(date);
-
-  if (difference.inMinutes < 1) {
-    return 'الآن';
-  }
-
-  if (difference.inMinutes < 60) {
-    return 'منذ ${difference.inMinutes} دقيقة';
-  }
-
-  if (difference.inHours < 24) {
-    return 'منذ ${difference.inHours} ساعة';
-  }
-
-  if (difference.inDays == 1) {
-    return 'أمس';
-  }
-
-  return '${date.day}/${date.month}';
-}
-
-/// ===============================================================
-/// ENUMS
-/// ===============================================================
+const Color fahadGold = Color(0xFFD4AF37);
+const Color fahadBackground = Color(0xFF0D131A);
+const Color fahadAppBar = Color(0xFF101820);
+const Color fahadPanel = Color(0xFF18232C);
 
 enum MessageStatus {
   sending,
@@ -80,18 +14,6 @@ enum MessageStatus {
   delivered,
   read,
   failed,
-}
-
-enum MessageType {
-  text,
-  image,
-  video,
-  file,
-  audio,
-  location,
-  contact,
-  sticker,
-  gif,
 }
 
 enum CallType {
@@ -105,186 +27,162 @@ enum CallDirection {
   missed,
 }
 
-/// ===============================================================
-/// ACCOUNT
-/// ===============================================================
+/* ============================================================
+   🧠 MODELS
+   ============================================================ */
 
 class AlWazirAccount {
-  final String id;
   final String name;
   final String phone;
   final String countryCode;
+  final String about;
   final String photoPath;
-  final DateTime? createdAt;
 
   const AlWazirAccount({
-    required this.id,
     required this.name,
     required this.phone,
     required this.countryCode,
+    required this.about,
     required this.photoPath,
-    required this.createdAt,
   });
 
   factory AlWazirAccount.empty() {
     return const AlWazirAccount(
-      id: '',
       name: '',
       phone: '',
       countryCode: '+967',
+      about: 'الفهد أداء وتميز',
       photoPath: '',
-      createdAt: null,
     );
   }
 
   AlWazirAccount copyWith({
-    String? id,
     String? name,
     String? phone,
     String? countryCode,
+    String? about,
     String? photoPath,
-    DateTime? createdAt,
   }) {
     return AlWazirAccount(
-      id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       countryCode: countryCode ?? this.countryCode,
+      about: about ?? this.about,
       photoPath: photoPath ?? this.photoPath,
-      createdAt: createdAt ?? this.createdAt,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'name': name,
       'phone': phone,
       'countryCode': countryCode,
+      'about': about,
       'photoPath': photoPath,
-      'createdAt': createdAt?.toIso8601String(),
     };
   }
 
-  factory AlWazirAccount.fromMap(Map<String, dynamic> map) {
+  factory AlWazirAccount.fromJson(Map<String, dynamic> json) {
     return AlWazirAccount(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      phone: map['phone']?.toString() ?? '',
-      countryCode: map['countryCode']?.toString() ?? '+967',
-      photoPath: map['photoPath']?.toString() ?? '',
-      createdAt: map['createdAt'] == null
-          ? null
-          : DateTime.tryParse(map['createdAt'].toString()),
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      countryCode: json['countryCode']?.toString() ?? '+967',
+      about: json['about']?.toString() ?? 'الفهد أداء وتميز',
+      photoPath: json['photoPath']?.toString() ?? '',
     );
   }
 }
 
-/// ===============================================================
-/// SETTINGS
-/// ===============================================================
-
 class AlWazirSettings {
-  final bool notificationsEnabled;
+  final bool notifications;
   final bool readReceipts;
-  final bool lastSeenEnabled;
-  final bool statusPrivacyEnabled;
-  final bool appLockEnabled;
-  final bool chatLockEnabled;
-  final bool twoStepEnabled;
-  final bool darkMode;
+  final bool lastSeen;
+  final bool statusPrivacy;
+  final bool appLock;
+  final bool chatLock;
+  final bool twoStepVerification;
   final String language;
 
   const AlWazirSettings({
-    required this.notificationsEnabled,
+    required this.notifications,
     required this.readReceipts,
-    required this.lastSeenEnabled,
-    required this.statusPrivacyEnabled,
-    required this.appLockEnabled,
-    required this.chatLockEnabled,
-    required this.twoStepEnabled,
-    required this.darkMode,
+    required this.lastSeen,
+    required this.statusPrivacy,
+    required this.appLock,
+    required this.chatLock,
+    required this.twoStepVerification,
     required this.language,
   });
 
   factory AlWazirSettings.defaults() {
     return const AlWazirSettings(
-      notificationsEnabled: true,
+      notifications: true,
       readReceipts: true,
-      lastSeenEnabled: true,
-      statusPrivacyEnabled: true,
-      appLockEnabled: false,
-      chatLockEnabled: false,
-      twoStepEnabled: false,
-      darkMode: true,
+      lastSeen: true,
+      statusPrivacy: true,
+      appLock: false,
+      chatLock: false,
+      twoStepVerification: false,
       language: 'العربية',
     );
   }
 
   AlWazirSettings copyWith({
-    bool? notificationsEnabled,
+    bool? notifications,
     bool? readReceipts,
-    bool? lastSeenEnabled,
-    bool? statusPrivacyEnabled,
-    bool? appLockEnabled,
-    bool? chatLockEnabled,
-    bool? twoStepEnabled,
-    bool? darkMode,
+    bool? lastSeen,
+    bool? statusPrivacy,
+    bool? appLock,
+    bool? chatLock,
+    bool? twoStepVerification,
     String? language,
   }) {
     return AlWazirSettings(
-      notificationsEnabled:
-          notificationsEnabled ?? this.notificationsEnabled,
+      notifications: notifications ?? this.notifications,
       readReceipts: readReceipts ?? this.readReceipts,
-      lastSeenEnabled: lastSeenEnabled ?? this.lastSeenEnabled,
-      statusPrivacyEnabled:
-          statusPrivacyEnabled ?? this.statusPrivacyEnabled,
-      appLockEnabled: appLockEnabled ?? this.appLockEnabled,
-      chatLockEnabled: chatLockEnabled ?? this.chatLockEnabled,
-      twoStepEnabled: twoStepEnabled ?? this.twoStepEnabled,
-      darkMode: darkMode ?? this.darkMode,
+      lastSeen: lastSeen ?? this.lastSeen,
+      statusPrivacy: statusPrivacy ?? this.statusPrivacy,
+      appLock: appLock ?? this.appLock,
+      chatLock: chatLock ?? this.chatLock,
+      twoStepVerification:
+          twoStepVerification ?? this.twoStepVerification,
       language: language ?? this.language,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'notificationsEnabled': notificationsEnabled,
+      'notifications': notifications,
       'readReceipts': readReceipts,
-      'lastSeenEnabled': lastSeenEnabled,
-      'statusPrivacyEnabled': statusPrivacyEnabled,
-      'appLockEnabled': appLockEnabled,
-      'chatLockEnabled': chatLockEnabled,
-      'twoStepEnabled': twoStepEnabled,
-      'darkMode': darkMode,
+      'lastSeen': lastSeen,
+      'statusPrivacy': statusPrivacy,
+      'appLock': appLock,
+      'chatLock': chatLock,
+      'twoStepVerification': twoStepVerification,
       'language': language,
     };
   }
 
-  factory AlWazirSettings.fromMap(Map<String, dynamic> map) {
+  factory AlWazirSettings.fromJson(Map<String, dynamic> json) {
     return AlWazirSettings(
-      notificationsEnabled: map['notificationsEnabled'] != false,
-      readReceipts: map['readReceipts'] != false,
-      lastSeenEnabled: map['lastSeenEnabled'] != false,
-      statusPrivacyEnabled: map['statusPrivacyEnabled'] != false,
-      appLockEnabled: map['appLockEnabled'] == true,
-      chatLockEnabled: map['chatLockEnabled'] == true,
-      twoStepEnabled: map['twoStepEnabled'] == true,
-      darkMode: map['darkMode'] != false,
-      language: map['language']?.toString() ?? 'العربية',
+      notifications: json['notifications'] as bool? ?? true,
+      readReceipts: json['readReceipts'] as bool? ?? true,
+      lastSeen: json['lastSeen'] as bool? ?? true,
+      statusPrivacy: json['statusPrivacy'] as bool? ?? true,
+      appLock: json['appLock'] as bool? ?? false,
+      chatLock: json['chatLock'] as bool? ?? false,
+      twoStepVerification:
+          json['twoStepVerification'] as bool? ?? false,
+      language: json['language']?.toString() ?? 'العربية',
     );
   }
 }
-
-/// ===============================================================
-/// CHAT
-/// ===============================================================
 
 class AlWazirChat {
   final String id;
   final String name;
   final String phone;
-  final String avatarPath;
+  final String avatar;
   final String lastMessage;
   final DateTime? lastTime;
   final int unread;
@@ -296,7 +194,7 @@ class AlWazirChat {
     required this.id,
     required this.name,
     required this.phone,
-    required this.avatarPath,
+    required this.avatar,
     required this.lastMessage,
     required this.lastTime,
     required this.unread,
@@ -305,29 +203,37 @@ class AlWazirChat {
     required this.locked,
   });
 
-  factory AlWazirChat.fromMap(Map<String, dynamic> map) {
+  AlWazirChat copyWith({
+    String? name,
+    String? phone,
+    String? avatar,
+    String? lastMessage,
+    DateTime? lastTime,
+    int? unread,
+    bool? pinned,
+    bool? muted,
+    bool? locked,
+  }) {
     return AlWazirChat(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      phone: map['phone']?.toString() ?? '',
-      avatarPath: map['avatarPath']?.toString() ?? '',
-      lastMessage: map['lastMessage']?.toString() ?? '',
-      lastTime: map['lastTime'] == null
-          ? null
-          : DateTime.tryParse(map['lastTime'].toString()),
-      unread: (map['unread'] as num?)?.toInt() ?? 0,
-      pinned: map['pinned'] == true,
-      muted: map['muted'] == true,
-      locked: map['locked'] == true,
+      id: id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      avatar: avatar ?? this.avatar,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastTime: lastTime ?? this.lastTime,
+      unread: unread ?? this.unread,
+      pinned: pinned ?? this.pinned,
+      muted: muted ?? this.muted,
+      locked: locked ?? this.locked,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'phone': phone,
-      'avatarPath': avatarPath,
+      'avatar': avatar,
       'lastMessage': lastMessage,
       'lastTime': lastTime?.toIso8601String(),
       'unread': unread,
@@ -337,161 +243,132 @@ class AlWazirChat {
     };
   }
 
-  AlWazirChat copyWith({
-    String? id,
-    String? name,
-    String? phone,
-    String? avatarPath,
-    String? lastMessage,
-    DateTime? lastTime,
-    int? unread,
-    bool? pinned,
-    bool? muted,
-    bool? locked,
-  }) {
+  factory AlWazirChat.fromJson(Map<String, dynamic> json) {
     return AlWazirChat(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      phone: phone ?? this.phone,
-      avatarPath: avatarPath ?? this.avatarPath,
-      lastMessage: lastMessage ?? this.lastMessage,
-      lastTime: lastTime ?? this.lastTime,
-      unread: unread ?? this.unread,
-      pinned: pinned ?? this.pinned,
-      muted: muted ?? this.muted,
-      locked: locked ?? this.locked,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? '',
+      lastMessage: json['lastMessage']?.toString() ?? '',
+      lastTime: json['lastTime'] == null
+          ? null
+          : DateTime.tryParse(json['lastTime'].toString()),
+      unread: (json['unread'] as num?)?.toInt() ?? 0,
+      pinned: json['pinned'] as bool? ?? false,
+      muted: json['muted'] as bool? ?? false,
+      locked: json['locked'] as bool? ?? false,
     );
   }
 }
 
-/// ===============================================================
-/// MESSAGE
-/// ===============================================================
-
 class AlWazirMessage {
   final String id;
   final String chatId;
-  final String senderId;
   final String text;
-  final String mediaPath;
-  final MessageType type;
+  final DateTime time;
+  final bool mine;
   final MessageStatus status;
-  final DateTime createdAt;
-  final String replyToId;
-  final String replyText;
-  final bool deletedForMe;
+  final String replyTo;
+  final String mediaPath;
+  final String mediaType;
   final bool deletedForEveryone;
+  final bool deletedForMe;
   final bool pinned;
   final bool edited;
 
   const AlWazirMessage({
     required this.id,
     required this.chatId,
-    required this.senderId,
     required this.text,
-    required this.mediaPath,
-    required this.type,
+    required this.time,
+    required this.mine,
     required this.status,
-    required this.createdAt,
-    required this.replyToId,
-    required this.replyText,
-    required this.deletedForMe,
+    required this.replyTo,
+    required this.mediaPath,
+    required this.mediaType,
     required this.deletedForEveryone,
+    required this.deletedForMe,
     required this.pinned,
     required this.edited,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'chatId': chatId,
-      'senderId': senderId,
-      'text': text,
-      'mediaPath': mediaPath,
-      'type': type.name,
-      'status': status.name,
-      'createdAt': createdAt.toIso8601String(),
-      'replyToId': replyToId,
-      'replyText': replyText,
-      'deletedForMe': deletedForMe,
-      'deletedForEveryone': deletedForEveryone,
-      'pinned': pinned,
-      'edited': edited,
-    };
-  }
-
-  factory AlWazirMessage.fromMap(Map<String, dynamic> map) {
-    final type = MessageType.values.firstWhere(
-      (value) => value.name == map['type'],
-      orElse: () => MessageType.text,
-    );
-
-    final status = MessageStatus.values.firstWhere(
-      (value) => value.name == map['status'],
-      orElse: () => MessageStatus.sent,
-    );
-
-    return AlWazirMessage(
-      id: map['id']?.toString() ?? '',
-      chatId: map['chatId']?.toString() ?? '',
-      senderId: map['senderId']?.toString() ?? '',
-      text: map['text']?.toString() ?? '',
-      mediaPath: map['mediaPath']?.toString() ?? '',
-      type: type,
-      status: status,
-      createdAt: DateTime.tryParse(
-            map['createdAt']?.toString() ?? '',
-          ) ??
-          DateTime.now(),
-      replyToId: map['replyToId']?.toString() ?? '',
-      replyText: map['replyText']?.toString() ?? '',
-      deletedForMe: map['deletedForMe'] == true,
-      deletedForEveryone: map['deletedForEveryone'] == true,
-      pinned: map['pinned'] == true,
-      edited: map['edited'] == true,
-    );
-  }
-
   AlWazirMessage copyWith({
     String? text,
-    String? mediaPath,
-    MessageType? type,
     MessageStatus? status,
-    String? replyToId,
-    String? replyText,
-    bool? deletedForMe,
+    String? replyTo,
+    String? mediaPath,
+    String? mediaType,
     bool? deletedForEveryone,
+    bool? deletedForMe,
     bool? pinned,
     bool? edited,
   }) {
     return AlWazirMessage(
       id: id,
       chatId: chatId,
-      senderId: senderId,
       text: text ?? this.text,
-      mediaPath: mediaPath ?? this.mediaPath,
-      type: type ?? this.type,
+      time: time,
+      mine: mine,
       status: status ?? this.status,
-      createdAt: createdAt,
-      replyToId: replyToId ?? this.replyToId,
-      replyText: replyText ?? this.replyText,
-      deletedForMe: deletedForMe ?? this.deletedForMe,
+      replyTo: replyTo ?? this.replyTo,
+      mediaPath: mediaPath ?? this.mediaPath,
+      mediaType: mediaType ?? this.mediaType,
       deletedForEveryone:
           deletedForEveryone ?? this.deletedForEveryone,
+      deletedForMe: deletedForMe ?? this.deletedForMe,
       pinned: pinned ?? this.pinned,
       edited: edited ?? this.edited,
     );
   }
-}
 
-/// ===============================================================
-/// GROUP
-/// ===============================================================
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'chatId': chatId,
+      'text': text,
+      'time': time.toIso8601String(),
+      'mine': mine,
+      'status': status.name,
+      'replyTo': replyTo,
+      'mediaPath': mediaPath,
+      'mediaType': mediaType,
+      'deletedForEveryone': deletedForEveryone,
+      'deletedForMe': deletedForMe,
+      'pinned': pinned,
+      'edited': edited,
+    };
+  }
+
+  factory AlWazirMessage.fromJson(Map<String, dynamic> json) {
+    final statusName = json['status']?.toString() ?? 'sent';
+
+    return AlWazirMessage(
+      id: json['id']?.toString() ?? '',
+      chatId: json['chatId']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      time: DateTime.tryParse(json['time']?.toString() ?? '') ??
+          DateTime.now(),
+      mine: json['mine'] as bool? ?? false,
+      status: MessageStatus.values.firstWhere(
+        (e) => e.name == statusName,
+        orElse: () => MessageStatus.sent,
+      ),
+      replyTo: json['replyTo']?.toString() ?? '',
+      mediaPath: json['mediaPath']?.toString() ?? '',
+      mediaType: json['mediaType']?.toString() ?? '',
+      deletedForEveryone:
+          json['deletedForEveryone'] as bool? ?? false,
+      deletedForMe: json['deletedForMe'] as bool? ?? false,
+      pinned: json['pinned'] as bool? ?? false,
+      edited: json['edited'] as bool? ?? false,
+    );
+  }
+}
 
 class AlWazirGroup {
   final String id;
   final String name;
-  final String photoPath;
+  final String photo;
   final List<String> members;
   final List<String> admins;
   final DateTime createdAt;
@@ -499,127 +376,115 @@ class AlWazirGroup {
   const AlWazirGroup({
     required this.id,
     required this.name,
-    required this.photoPath,
+    required this.photo,
     required this.members,
     required this.admins,
     required this.createdAt,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
-      'photoPath': photoPath,
+      'photo': photo,
       'members': members,
       'admins': admins,
       'createdAt': createdAt.toIso8601String(),
     };
   }
 
-  factory AlWazirGroup.fromMap(Map<String, dynamic> map) {
+  factory AlWazirGroup.fromJson(Map<String, dynamic> json) {
     return AlWazirGroup(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      photoPath: map['photoPath']?.toString() ?? '',
-      members: List<String>.from(
-        (map['members'] as List?) ?? const [],
-      ),
-      admins: List<String>.from(
-        (map['admins'] as List?) ?? const [],
-      ),
-      createdAt: DateTime.tryParse(
-            map['createdAt']?.toString() ?? '',
-          ) ??
-          DateTime.now(),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      photo: json['photo']?.toString() ?? '',
+      members: List<String>.from(json['members'] ?? const []),
+      admins: List<String>.from(json['admins'] ?? const []),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+              DateTime.now(),
     );
   }
 }
 
-/// ===============================================================
-/// STATUS
-/// ===============================================================
-
 class AlWazirStatus {
   final String id;
-  final String ownerName;
   final String text;
   final String mediaPath;
+  final String mediaType;
   final DateTime createdAt;
+  final DateTime expiresAt;
   final int views;
 
   const AlWazirStatus({
     required this.id,
-    required this.ownerName,
     required this.text,
     required this.mediaPath,
+    required this.mediaType,
     required this.createdAt,
+    required this.expiresAt,
     required this.views,
   });
 
-  bool get expired =>
-      DateTime.now().difference(createdAt).inHours >= 24;
-
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'ownerName': ownerName,
       'text': text,
       'mediaPath': mediaPath,
+      'mediaType': mediaType,
       'createdAt': createdAt.toIso8601String(),
+      'expiresAt': expiresAt.toIso8601String(),
       'views': views,
     };
   }
 
-  factory AlWazirStatus.fromMap(Map<String, dynamic> map) {
+  factory AlWazirStatus.fromJson(Map<String, dynamic> json) {
     return AlWazirStatus(
-      id: map['id']?.toString() ?? '',
-      ownerName: map['ownerName']?.toString() ?? '',
-      text: map['text']?.toString() ?? '',
-      mediaPath: map['mediaPath']?.toString() ?? '',
-      createdAt: DateTime.tryParse(
-            map['createdAt']?.toString() ?? '',
-          ) ??
-          DateTime.now(),
-      views: (map['views'] as num?)?.toInt() ?? 0,
+      id: json['id']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      mediaPath: json['mediaPath']?.toString() ?? '',
+      mediaType: json['mediaType']?.toString() ?? '',
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+              DateTime.now(),
+      expiresAt:
+          DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
+              DateTime.now().add(const Duration(hours: 24)),
+      views: (json['views'] as num?)?.toInt() ?? 0,
     );
   }
 }
-
-/// ===============================================================
-/// CHANNEL
-/// ===============================================================
 
 class AlWazirChannelPost {
   final String id;
   final String text;
   final DateTime createdAt;
-  final int likes;
+  final bool advertisement;
 
   const AlWazirChannelPost({
     required this.id,
     required this.text,
     required this.createdAt,
-    required this.likes,
+    required this.advertisement,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'text': text,
       'createdAt': createdAt.toIso8601String(),
-      'likes': likes,
+      'advertisement': advertisement,
     };
   }
 
-  factory AlWazirChannelPost.fromMap(Map<String, dynamic> map) {
+  factory AlWazirChannelPost.fromJson(Map<String, dynamic> json) {
     return AlWazirChannelPost(
-      id: map['id']?.toString() ?? '',
-      text: map['text']?.toString() ?? '',
-      createdAt: DateTime.tryParse(
-            map['createdAt']?.toString() ?? '',
-          ) ??
-          DateTime.now(),
-      likes: (map['likes'] as num?)?.toInt() ?? 0,
+      id: json['id']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+              DateTime.now(),
+      advertisement: json['advertisement'] as bool? ?? false,
     );
   }
 }
@@ -629,7 +494,7 @@ class AlWazirChannel {
   final String name;
   final String description;
   final bool verified;
-  final bool followed;
+  final bool following;
   final List<AlWazirChannelPost> posts;
 
   const AlWazirChannel({
@@ -637,41 +502,12 @@ class AlWazirChannel {
     required this.name,
     required this.description,
     required this.verified,
-    required this.followed,
+    required this.following,
     required this.posts,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'verified': verified,
-      'followed': followed,
-      'posts': posts.map((e) => e.toMap()).toList(),
-    };
-  }
-
-  factory AlWazirChannel.fromMap(Map<String, dynamic> map) {
-    return AlWazirChannel(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      description: map['description']?.toString() ?? '',
-      verified: map['verified'] == true,
-      followed: map['followed'] == true,
-      posts: ((map['posts'] as List?) ?? const [])
-          .whereType<Map>()
-          .map(
-            (item) => AlWazirChannelPost.fromMap(
-              Map<String, dynamic>.from(item),
-            ),
-          )
-          .toList(),
-    );
-  }
-
   AlWazirChannel copyWith({
-    bool? followed,
+    bool? following,
     List<AlWazirChannelPost>? posts,
   }) {
     return AlWazirChannel(
@@ -679,71 +515,87 @@ class AlWazirChannel {
       name: name,
       description: description,
       verified: verified,
-      followed: followed ?? this.followed,
+      following: following ?? this.following,
       posts: posts ?? this.posts,
     );
   }
-}
 
-/// ===============================================================
-/// CALL
-/// ===============================================================
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'verified': verified,
+      'following': following,
+      'posts': posts.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  factory AlWazirChannel.fromJson(Map<String, dynamic> json) {
+    return AlWazirChannel(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      verified: json['verified'] as bool? ?? false,
+      following: json['following'] as bool? ?? false,
+      posts: (json['posts'] as List? ?? [])
+          .whereType<Map>()
+          .map(
+            (e) => AlWazirChannelPost.fromJson(
+              Map<String, dynamic>.from(e),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
 
 class AlWazirCall {
   final String id;
   final String name;
   final CallType type;
   final CallDirection direction;
-  final DateTime createdAt;
+  final DateTime time;
 
   const AlWazirCall({
     required this.id,
     required this.name,
     required this.type,
     required this.direction,
-    required this.createdAt,
+    required this.time,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'type': type.name,
       'direction': direction.name,
-      'createdAt': createdAt.toIso8601String(),
+      'time': time.toIso8601String(),
     };
   }
 
-  factory AlWazirCall.fromMap(Map<String, dynamic> map) {
-    final type = CallType.values.firstWhere(
-      (e) => e.name == map['type'],
-      orElse: () => CallType.voice,
-    );
-
-    final direction = CallDirection.values.firstWhere(
-      (e) => e.name == map['direction'],
-      orElse: () => CallDirection.incoming,
-    );
-
+  factory AlWazirCall.fromJson(Map<String, dynamic> json) {
     return AlWazirCall(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      type: type,
-      direction: direction,
-      createdAt: DateTime.tryParse(
-            map['createdAt']?.toString() ?? '',
-          ) ??
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      type: CallType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => CallType.voice,
+      ),
+      direction: CallDirection.values.firstWhere(
+        (e) => e.name == json['direction'],
+        orElse: () => CallDirection.outgoing,
+      ),
+      time: DateTime.tryParse(json['time']?.toString() ?? '') ??
           DateTime.now(),
     );
   }
 }
 
-/// ===============================================================
-/// 🧠 AlWazirCore
-///
-/// النواة المحلية للتطبيق.
-/// كل تغيير مهم يتم حفظه في SharedPreferences.
-/// ===============================================================
+/* ============================================================
+   🧠 AL-WAZIR CORE
+   ============================================================ */
 
 class AlWazirCore extends ChangeNotifier {
   AlWazirCore._();
@@ -751,23 +603,16 @@ class AlWazirCore extends ChangeNotifier {
   static final AlWazirCore instance = AlWazirCore._();
 
   SharedPreferences? _prefs;
-
   bool initialized = false;
 
   AlWazirAccount account = AlWazirAccount.empty();
-
   AlWazirSettings settings = AlWazirSettings.defaults();
 
   final List<AlWazirChat> chats = [];
-
   final Map<String, List<AlWazirMessage>> messages = {};
-
   final List<AlWazirGroup> groups = [];
-
   final List<AlWazirStatus> statuses = [];
-
   final List<AlWazirChannel> channels = [];
-
   final List<AlWazirCall> calls = [];
 
   static const String _accountKey = 'fahad.account.v2';
@@ -779,41 +624,39 @@ class AlWazirCore extends ChangeNotifier {
   static const String _channelsKey = 'fahad.channels.v2';
   static const String _callsKey = 'fahad.calls.v2';
 
+  Future<void> ensureReady() async {
+    if (!initialized) {
+      await init();
+    }
+  }
+
   Future<void> init() async {
     if (initialized) return;
 
     _prefs = await SharedPreferences.getInstance();
 
-    await _loadAccount();
-    await _loadSettings();
-    await _loadChats();
-    await _loadMessages();
-    await _loadGroups();
-    await _loadStatuses();
-    await _loadChannels();
-    await _loadCalls();
+    _loadAccount();
+    _loadSettings();
+    _loadChats();
+    _loadMessages();
+    _loadGroups();
+    _loadStatuses();
+    _loadChannels();
+    _loadCalls();
 
     _removeExpiredStatuses();
 
     if (channels.isEmpty) {
       channels.add(
         AlWazirChannel(
-          id: 'official-fahad-channel',
+          id: 'official-fahad',
           name: 'قناة الفهد الرسمية',
-          description: 'آخر الأخبار والتحديثات والإعلانات',
+          description: 'آخر الأخبار والتحديثات',
           verified: true,
-          followed: true,
-          posts: [
-            AlWazirChannelPost(
-              id: _newId(),
-              text: 'مرحبًا بكم في قناة الفهد الرسمية 🐆',
-              createdAt: DateTime.now(),
-              likes: 0,
-            ),
-          ],
+          following: true,
+          posts: const [],
         ),
       );
-
       await _saveChannels();
     }
 
@@ -821,76 +664,65 @@ class AlWazirCore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> ensureReady() async {
-    if (!initialized) {
-      await init();
-    }
-  }
-
-  Future<void> _loadAccount() async {
-    final value = _prefs?.getString(_accountKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadAccount() {
+    final raw = _prefs?.getString(_accountKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      account = AlWazirAccount.fromMap(
-        Map<String, dynamic>.from(jsonDecode(value)),
+      account = AlWazirAccount.fromJson(
+        Map<String, dynamic>.from(jsonDecode(raw)),
       );
     } catch (_) {}
   }
 
-  Future<void> _loadSettings() async {
-    final value = _prefs?.getString(_settingsKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadSettings() {
+    final raw = _prefs?.getString(_settingsKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      settings = AlWazirSettings.fromMap(
-        Map<String, dynamic>.from(jsonDecode(value)),
+      settings = AlWazirSettings.fromJson(
+        Map<String, dynamic>.from(jsonDecode(raw)),
       );
     } catch (_) {}
   }
 
-  Future<void> _loadChats() async {
-    final value = _prefs?.getString(_chatsKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadChats() {
+    final raw = _prefs?.getString(_chatsKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final list = jsonDecode(value) as List;
-
+      final list = jsonDecode(raw) as List;
       chats
         ..clear()
         ..addAll(
           list
               .whereType<Map>()
               .map(
-                (item) => AlWazirChat.fromMap(
-                  Map<String, dynamic>.from(item),
+                (e) => AlWazirChat.fromJson(
+                  Map<String, dynamic>.from(e),
                 ),
               ),
         );
     } catch (_) {}
   }
 
-  Future<void> _loadMessages() async {
-    final value = _prefs?.getString(_messagesKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadMessages() {
+    final raw = _prefs?.getString(_messagesKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final map = Map<String, dynamic>.from(jsonDecode(value));
+      final map = Map<String, dynamic>.from(jsonDecode(raw));
 
       messages.clear();
 
       for (final entry in map.entries) {
-        final list = entry.value as List;
+        final list = entry.value as List? ?? [];
 
         messages[entry.key] = list
             .whereType<Map>()
             .map(
-              (item) => AlWazirMessage.fromMap(
-                Map<String, dynamic>.from(item),
+              (e) => AlWazirMessage.fromJson(
+                Map<String, dynamic>.from(e),
               ),
             )
             .toList();
@@ -898,88 +730,80 @@ class AlWazirCore extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> _loadGroups() async {
-    final value = _prefs?.getString(_groupsKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadGroups() {
+    final raw = _prefs?.getString(_groupsKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final list = jsonDecode(value) as List;
-
+      final list = jsonDecode(raw) as List;
       groups
         ..clear()
         ..addAll(
           list
               .whereType<Map>()
               .map(
-                (item) => AlWazirGroup.fromMap(
-                  Map<String, dynamic>.from(item),
+                (e) => AlWazirGroup.fromJson(
+                  Map<String, dynamic>.from(e),
                 ),
               ),
         );
     } catch (_) {}
   }
 
-  Future<void> _loadStatuses() async {
-    final value = _prefs?.getString(_statusesKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadStatuses() {
+    final raw = _prefs?.getString(_statusesKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final list = jsonDecode(value) as List;
-
+      final list = jsonDecode(raw) as List;
       statuses
         ..clear()
         ..addAll(
           list
               .whereType<Map>()
               .map(
-                (item) => AlWazirStatus.fromMap(
-                  Map<String, dynamic>.from(item),
+                (e) => AlWazirStatus.fromJson(
+                  Map<String, dynamic>.from(e),
                 ),
               ),
         );
     } catch (_) {}
   }
 
-  Future<void> _loadChannels() async {
-    final value = _prefs?.getString(_channelsKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadChannels() {
+    final raw = _prefs?.getString(_channelsKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final list = jsonDecode(value) as List;
-
+      final list = jsonDecode(raw) as List;
       channels
         ..clear()
         ..addAll(
           list
               .whereType<Map>()
               .map(
-                (item) => AlWazirChannel.fromMap(
-                  Map<String, dynamic>.from(item),
+                (e) => AlWazirChannel.fromJson(
+                  Map<String, dynamic>.from(e),
                 ),
               ),
         );
     } catch (_) {}
   }
 
-  Future<void> _loadCalls() async {
-    final value = _prefs?.getString(_callsKey);
-
-    if (value == null || value.isEmpty) return;
+  void _loadCalls() {
+    final raw = _prefs?.getString(_callsKey);
+    if (raw == null || raw.isEmpty) return;
 
     try {
-      final list = jsonDecode(value) as List;
-
+      final list = jsonDecode(raw) as List;
       calls
         ..clear()
         ..addAll(
           list
               .whereType<Map>()
               .map(
-                (item) => AlWazirCall.fromMap(
-                  Map<String, dynamic>.from(item),
+                (e) => AlWazirCall.fromJson(
+                  Map<String, dynamic>.from(e),
                 ),
               ),
         );
@@ -987,14 +811,11 @@ class AlWazirCore extends ChangeNotifier {
   }
 
   void _removeExpiredStatuses() {
-    statuses.removeWhere((status) => status.expired);
-  }
+    final now = DateTime.now();
 
-  Future<void> _saveString(
-    String key,
-    String value,
-  ) async {
-    await _prefs?.setString(key, value);
+    statuses.removeWhere(
+      (status) => status.expiresAt.isBefore(now),
+    );
   }
 
   Future<void> saveAccount(AlWazirAccount value) async {
@@ -1002,9 +823,9 @@ class AlWazirCore extends ChangeNotifier {
 
     account = value;
 
-    await _saveString(
+    await _prefs!.setString(
       _accountKey,
-      jsonEncode(account.toMap()),
+      jsonEncode(account.toJson()),
     );
 
     notifyListeners();
@@ -1017,9 +838,9 @@ class AlWazirCore extends ChangeNotifier {
 
     settings = value;
 
-    await _saveString(
+    await _prefs!.setString(
       _settingsKey,
-      jsonEncode(settings.toMap()),
+      jsonEncode(settings.toJson()),
     );
 
     notifyListeners();
@@ -1029,43 +850,11 @@ class AlWazirCore extends ChangeNotifier {
     for (final item in chats) {
       if (item.id == id) return item;
     }
-
     return null;
   }
 
   List<AlWazirMessage> chatMessages(String chatId) {
-    return messages.putIfAbsent(chatId, () => []);
-  }
-
-  Future<AlWazirChat> createChat({
-    required String name,
-    String phone = '',
-  }) async {
-    await ensureReady();
-
-    final chat = AlWazirChat(
-      id: _newId(),
-      name: name,
-      phone: phone,
-      avatarPath: '',
-      lastMessage: '',
-      lastTime: null,
-      unread: 0,
-      pinned: false,
-      muted: false,
-      locked: false,
-    );
-
-    chats.insert(0, chat);
-
-    messages[chat.id] = [];
-
-    await _saveChats();
-    await _saveMessages();
-
-    notifyListeners();
-
-    return chat;
+    return List.unmodifiable(messages[chatId] ?? const []);
   }
 
   Future<AlWazirChat> ensureChat({
@@ -1085,7 +874,7 @@ class AlWazirCore extends ChangeNotifier {
       id: id,
       name: name,
       phone: phone,
-      avatarPath: '',
+      avatar: '',
       lastMessage: '',
       lastTime: null,
       unread: 0,
@@ -1094,11 +883,9 @@ class AlWazirCore extends ChangeNotifier {
       locked: false,
     );
 
-    chats.insert(0, created);
-    messages[id] = [];
+    chats.add(created);
 
     await _saveChats();
-    await _saveMessages();
 
     notifyListeners();
 
@@ -1108,45 +895,48 @@ class AlWazirCore extends ChangeNotifier {
   Future<AlWazirMessage> sendMessage({
     required String chatId,
     required String text,
-    MessageType type = MessageType.text,
-    String mediaPath = '',
-    String replyToId = '',
-    String replyText = '',
+    String replyTo = '',
   }) async {
     await ensureReady();
+
+    final value = text.trim();
+
+    if (value.isEmpty) {
+      throw ArgumentError('الرسالة فارغة');
+    }
 
     final now = DateTime.now();
 
     final message = AlWazirMessage(
-      id: _newId(),
+      id: '${now.microsecondsSinceEpoch}',
       chatId: chatId,
-      senderId: account.id.isEmpty ? 'me' : account.id,
-      text: text.trim(),
-      mediaPath: mediaPath,
-      type: type,
-      status: MessageStatus.sent,
-      createdAt: now,
-      replyToId: replyToId,
-      replyText: replyText,
-      deletedForMe: false,
+      text: value,
+      time: now,
+      mine: true,
+      status: settings.readReceipts
+          ? MessageStatus.read
+          : MessageStatus.sent,
+      replyTo: replyTo,
+      mediaPath: '',
+      mediaType: '',
       deletedForEveryone: false,
+      deletedForMe: false,
       pinned: false,
       edited: false,
     );
 
-    final list = chatMessages(chatId);
-    list.add(message);
+    messages.putIfAbsent(chatId, () => []);
+    messages[chatId]!.add(message);
 
-    final index = chats.indexWhere(
-      (item) => item.id == chatId,
-    );
+    final current = chat(chatId);
 
-    if (index >= 0) {
-      final old = chats[index];
+    if (current != null) {
+      final index = chats.indexWhere((e) => e.id == chatId);
 
-      chats[index] = old.copyWith(
-        lastMessage: _messagePreview(message),
+      chats[index] = current.copyWith(
+        lastMessage: value,
         lastTime: now,
+        unread: 0,
       );
     }
 
@@ -1158,62 +948,40 @@ class AlWazirCore extends ChangeNotifier {
     return message;
   }
 
-  String _messagePreview(AlWazirMessage message) {
-    if (message.deletedForEveryone) {
-      return 'تم حذف هذه الرسالة';
-    }
-
-    switch (message.type) {
-      case MessageType.image:
-        return '📷 صورة';
-      case MessageType.video:
-        return '🎬 فيديو';
-      case MessageType.file:
-        return '📎 ملف';
-      case MessageType.audio:
-        return '🎤 رسالة صوتية';
-      case MessageType.location:
-        return '📍 الموقع';
-      case MessageType.contact:
-        return '👤 جهة اتصال';
-      case MessageType.sticker:
-        return '🎨 ملصق';
-      case MessageType.gif:
-        return 'GIF';
-      case MessageType.text:
-        return message.text;
-    }
-  }
-
   Future<void> editMessage(
     String chatId,
     String messageId,
-    String text,
+    String newText,
   ) async {
     await ensureReady();
 
-    final list = chatMessages(chatId);
+    final list = messages[chatId];
+
+    if (list == null) return;
 
     final index = list.indexWhere(
-      (item) => item.id == messageId,
+      (e) => e.id == messageId,
     );
 
     if (index < 0) return;
 
     list[index] = list[index].copyWith(
-      text: text.trim(),
+      text: newText.trim(),
       edited: true,
     );
 
     await _saveMessages();
 
-    final chatIndex = chats.indexWhere(
-      (item) => item.id == chatId,
-    );
+    final current = chat(chatId);
 
-    if (chatIndex >= 0) {
-      chats[chatIndex] = chats[chatIndex].copyWith(
-        lastMessage: text.trim(),
+    if (current != null &&
+        current.lastMessage == list[index].text) {
+      final chatIndex = chats.indexWhere(
+        (e) => e.id == chatId,
+      );
+
+      chats[chatIndex] = current.copyWith(
+        lastMessage: newText.trim(),
       );
 
       await _saveChats();
@@ -1228,10 +996,12 @@ class AlWazirCore extends ChangeNotifier {
   ) async {
     await ensureReady();
 
-    final list = chatMessages(chatId);
+    final list = messages[chatId];
+
+    if (list == null) return;
 
     final index = list.indexWhere(
-      (item) => item.id == messageId,
+      (e) => e.id == messageId,
     );
 
     if (index < 0) return;
@@ -1251,18 +1021,19 @@ class AlWazirCore extends ChangeNotifier {
   ) async {
     await ensureReady();
 
-    final list = chatMessages(chatId);
+    final list = messages[chatId];
+
+    if (list == null) return;
 
     final index = list.indexWhere(
-      (item) => item.id == messageId,
+      (e) => e.id == messageId,
     );
 
     if (index < 0) return;
 
     list[index] = list[index].copyWith(
-      text: '',
-      mediaPath: '',
       deletedForEveryone: true,
+      text: 'تم حذف هذه الرسالة',
     );
 
     await _saveMessages();
@@ -1276,18 +1047,20 @@ class AlWazirCore extends ChangeNotifier {
   ) async {
     await ensureReady();
 
-    final list = chatMessages(chatId);
+    final list = messages[chatId];
+
+    if (list == null) return;
 
     final index = list.indexWhere(
-      (item) => item.id == messageId,
+      (e) => e.id == messageId,
     );
 
     if (index < 0) return;
 
-    final old = list[index];
+    final item = list[index];
 
-    list[index] = old.copyWith(
-      pinned: !old.pinned,
+    list[index] = item.copyWith(
+      pinned: !item.pinned,
     );
 
     await _saveMessages();
@@ -1298,54 +1071,36 @@ class AlWazirCore extends ChangeNotifier {
   Future<void> markRead(String chatId) async {
     await ensureReady();
 
-    final list = chatMessages(chatId);
+    final current = chat(chatId);
 
-    if (settings.readReceipts) {
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].senderId != account.id) {
-          list[i] = list[i].copyWith(
-            status: MessageStatus.read,
-          );
-        }
-      }
-    }
+    if (current != null) {
+      final index = chats.indexWhere(
+        (e) => e.id == chatId,
+      );
 
-    final index = chats.indexWhere(
-      (item) => item.id == chatId,
-    );
-
-    if (index >= 0) {
-      chats[index] = chats[index].copyWith(
+      chats[index] = current.copyWith(
         unread: 0,
       );
+
+      await _saveChats();
     }
 
-    await _saveMessages();
-    await _saveChats();
-
     notifyListeners();
   }
 
-  Future<void> toggleChatFlag(
-    String chatId, {
-    bool? pinned,
-    bool? muted,
-    bool? locked,
-  }) async {
+  Future<void> toggleChatPinned(String chatId) async {
     await ensureReady();
+
+    final item = chat(chatId);
+
+    if (item == null) return;
 
     final index = chats.indexWhere(
-      (item) => item.id == chatId,
+      (e) => e.id == chatId,
     );
 
-    if (index < 0) return;
-
-    final old = chats[index];
-
-    chats[index] = old.copyWith(
-      pinned: pinned,
-      muted: muted,
-      locked: locked,
+    chats[index] = item.copyWith(
+      pinned: !item.pinned,
     );
 
     await _saveChats();
@@ -1353,58 +1108,103 @@ class AlWazirCore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<AlWazirGroup> createGroup({
+  Future<void> toggleChatMuted(String chatId) async {
+    await ensureReady();
+
+    final item = chat(chatId);
+
+    if (item == null) return;
+
+    final index = chats.indexWhere(
+      (e) => e.id == chatId,
+    );
+
+    chats[index] = item.copyWith(
+      muted: !item.muted,
+    );
+
+    await _saveChats();
+
+    notifyListeners();
+  }
+
+  Future<void> toggleChatLocked(String chatId) async {
+    await ensureReady();
+
+    final item = chat(chatId);
+
+    if (item == null) return;
+
+    final index = chats.indexWhere(
+      (e) => e.id == chatId,
+    );
+
+    chats[index] = item.copyWith(
+      locked: !item.locked,
+    );
+
+    await _saveChats();
+
+    notifyListeners();
+  }
+
+  Future<void> createGroup({
     required String name,
-    List<String> members = const [],
   }) async {
     await ensureReady();
 
+    final value = name.trim();
+
+    if (value.isEmpty) return;
+
+    final now = DateTime.now();
+
     final group = AlWazirGroup(
-      id: _newId(),
-      name: name.trim(),
-      photoPath: '',
-      members: List<String>.from(members),
-      admins: account.id.isEmpty
-          ? ['me']
-          : [account.id],
-      createdAt: DateTime.now(),
+      id: '${now.microsecondsSinceEpoch}',
+      name: value,
+      photo: '',
+      members: const [],
+      admins: const [],
+      createdAt: now,
     );
 
-    groups.insert(0, group);
+    groups.add(group);
 
     await _saveGroups();
 
     notifyListeners();
-
-    return group;
   }
 
-  Future<AlWazirStatus> createStatus({
-    required String text,
+  Future<void> createStatus({
+    String text = '',
     String mediaPath = '',
+    String mediaType = '',
   }) async {
     await ensureReady();
 
-    _removeExpiredStatuses();
+    if (text.trim().isEmpty && mediaPath.isEmpty) {
+      return;
+    }
 
-    final status = AlWazirStatus(
-      id: _newId(),
-      ownerName: account.name.isEmpty
-          ? 'أنا'
-          : account.name,
-      text: text.trim(),
-      mediaPath: mediaPath,
-      createdAt: DateTime.now(),
-      views: 0,
+    final now = DateTime.now();
+
+    statuses.add(
+      AlWazirStatus(
+        id: '${now.microsecondsSinceEpoch}',
+        text: text.trim(),
+        mediaPath: mediaPath,
+        mediaType: mediaType,
+        createdAt: now,
+        expiresAt: now.add(
+          const Duration(hours: 24),
+        ),
+        views: 0,
+      ),
     );
-
-    statuses.insert(0, status);
 
     await _saveStatuses();
 
     notifyListeners();
-
-    return status;
   }
 
   Future<void> deleteStatus(String id) async {
@@ -1419,32 +1219,17 @@ class AlWazirCore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addChannelPost({
-    required String channelId,
-    required String text,
-  }) async {
+  Future<void> toggleFollowChannel(String id) async {
     await ensureReady();
 
     final index = channels.indexWhere(
-      (channel) => channel.id == channelId,
+      (e) => e.id == id,
     );
 
     if (index < 0) return;
 
-    final channel = channels[index];
-
-    final post = AlWazirChannelPost(
-      id: _newId(),
-      text: text.trim(),
-      createdAt: DateTime.now(),
-      likes: 0,
-    );
-
-    channels[index] = channel.copyWith(
-      posts: [
-        post,
-        ...channel.posts,
-      ],
+    channels[index] = channels[index].copyWith(
+      following: !channels[index].following,
     );
 
     await _saveChannels();
@@ -1452,17 +1237,33 @@ class AlWazirCore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> followChannel(String channelId) async {
+  Future<void> addChannelPost({
+    required String channelId,
+    required String text,
+    bool advertisement = false,
+  }) async {
     await ensureReady();
 
     final index = channels.indexWhere(
-      (channel) => channel.id == channelId,
+      (e) => e.id == channelId,
     );
 
-    if (index < 0) return;
+    if (index < 0 || text.trim().isEmpty) return;
 
-    channels[index] = channels[index].copyWith(
-      followed: !channels[index].followed,
+    final post = AlWazirChannelPost(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      text: text.trim(),
+      createdAt: DateTime.now(),
+      advertisement: advertisement,
+    );
+
+    final channel = channels[index];
+
+    channels[index] = channel.copyWith(
+      posts: [
+        ...channel.posts,
+        post,
+      ],
     );
 
     await _saveChannels();
@@ -1480,11 +1281,11 @@ class AlWazirCore extends ChangeNotifier {
     calls.insert(
       0,
       AlWazirCall(
-        id: _newId(),
+        id: '${DateTime.now().microsecondsSinceEpoch}',
         name: name,
         type: type,
         direction: direction,
-        createdAt: DateTime.now(),
+        time: DateTime.now(),
       ),
     );
 
@@ -1493,62 +1294,78 @@ class AlWazirCore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _saveAccount() async {
+    await _prefs!.setString(
+      _accountKey,
+      jsonEncode(account.toJson()),
+    );
+  }
+
+  Future<void> _saveSettings() async {
+    await _prefs!.setString(
+      _settingsKey,
+      jsonEncode(settings.toJson()),
+    );
+  }
+
   Future<void> _saveChats() async {
-    await _saveString(
+    await _prefs!.setString(
       _chatsKey,
       jsonEncode(
-        chats.map((e) => e.toMap()).toList(),
+        chats.map((e) => e.toJson()).toList(),
       ),
     );
   }
 
   Future<void> _saveMessages() async {
-    final data = <String, dynamic>{};
+    final output = <String, dynamic>{};
 
     messages.forEach(
       (key, value) {
-        data[key] = value.map((e) => e.toMap()).toList();
+        output[key] = value
+            .map((e) => e.toJson())
+            .toList();
       },
     );
 
-    await _saveString(
+    await _prefs!.setString(
       _messagesKey,
-      jsonEncode(data),
+      jsonEncode(output),
     );
   }
 
   Future<void> _saveGroups() async {
-    await _saveString(
+    await _prefs!.setString(
       _groupsKey,
       jsonEncode(
-        groups.map((e) => e.toMap()).toList(),
+        groups.map((e) => e.toJson()).toList(),
       ),
     );
   }
 
   Future<void> _saveStatuses() async {
-    await _saveString(
+    await _prefs!.setString(
       _statusesKey,
       jsonEncode(
-        statuses.map((e) => e.toMap()).toList(),
+        statuses.map((e) => e.toJson()).toList(),
       ),
     );
   }
 
   Future<void> _saveChannels() async {
-    await _saveString(
+    await _prefs!.setString(
       _channelsKey,
       jsonEncode(
-        channels.map((e) => e.toMap()).toList(),
+        channels.map((e) => e.toJson()).toList(),
       ),
     );
   }
 
   Future<void> _saveCalls() async {
-    await _saveString(
+    await _prefs!.setString(
       _callsKey,
       jsonEncode(
-        calls.map((e) => e.toMap()).toList(),
+        calls.map((e) => e.toJson()).toList(),
       ),
     );
   }
@@ -1567,22 +1384,22 @@ class AlWazirCore extends ChangeNotifier {
     account = AlWazirAccount.empty();
     settings = AlWazirSettings.defaults();
 
-    await _prefs?.remove(_accountKey);
-    await _prefs?.remove(_settingsKey);
-    await _prefs?.remove(_chatsKey);
-    await _prefs?.remove(_messagesKey);
-    await _prefs?.remove(_groupsKey);
-    await _prefs?.remove(_statusesKey);
-    await _prefs?.remove(_channelsKey);
-    await _prefs?.remove(_callsKey);
+    await _prefs!.remove(_accountKey);
+    await _prefs!.remove(_settingsKey);
+    await _prefs!.remove(_chatsKey);
+    await _prefs!.remove(_messagesKey);
+    await _prefs!.remove(_groupsKey);
+    await _prefs!.remove(_statusesKey);
+    await _prefs!.remove(_channelsKey);
+    await _prefs!.remove(_callsKey);
 
     notifyListeners();
   }
 }
 
-/// ===============================================================
-/// MAIN HOME SCREEN
-/// ===============================================================
+/* ============================================================
+   🏠 MAIN HOME
+   ============================================================ */
 
 class MainHomeScreen extends StatefulWidget {
   final dynamic core;
@@ -1597,15 +1414,11 @@ class MainHomeScreen extends StatefulWidget {
 }
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
+  late final AlWazirCore core;
+
   int currentIndex = 0;
 
-  static const Color gold = kGold;
-  static const Color background = kBackground;
-  static const Color panel = kPanel;
-
-  late final AlWazirCore appCore;
-
-  final List<String> titles = const [
+  static const List<String> titles = [
     'الدردشات',
     'المجموعات',
     'المكالمات',
@@ -1617,30 +1430,32 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   void initState() {
     super.initState();
 
-    appCore = widget.core is AlWazirCore
+    core = widget.core is AlWazirCore
         ? widget.core as AlWazirCore
         : AlWazirCore.instance;
 
-    appCore.init();
+    core.init();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: appCore,
-      builder: (context, _) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Scaffold(
-            backgroundColor: background,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: AnimatedBuilder(
+        animation: core,
+        builder: (context, _) {
+          return Scaffold(
+            backgroundColor: fahadBackground,
             appBar: AppBar(
-              backgroundColor: kAppBar,
+              backgroundColor: fahadAppBar,
               elevation: 0,
               centerTitle: true,
               title: Text(
-                titles[currentIndex],
+                currentIndex == 0
+                    ? 'الفهد'
+                    : titles[currentIndex],
                 style: const TextStyle(
-                  color: gold,
+                  color: fahadGold,
                   fontSize: 23,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1649,25 +1464,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 IconButton(
                   tooltip: 'الكاميرا',
                   onPressed: () {
-                    _showInfo(
-                      context,
-                      'الكاميرا',
-                      'سيتم ربط الكاميرا بالرسائل والحالة في خطوة الوسائط.',
-                    );
+                    if (currentIndex == 3) {
+                      _openCreateStatus();
+                    } else {
+                      _showMessage('الكاميرا سيتم ربطها في مرحلة الوسائط');
+                    }
                   },
                   icon: const Icon(
                     Icons.camera_alt_outlined,
-                    color: gold,
+                    color: fahadGold,
                   ),
                 ),
                 IconButton(
                   tooltip: 'البحث',
-                  onPressed: () {
-                    showSearch(
-                      context: context,
-                      delegate: _FahadSearchDelegate(appCore),
-                    );
-                  },
+                  onPressed: _openSearch,
                   icon: const Icon(
                     Icons.search,
                     color: Colors.white,
@@ -1675,16 +1485,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
                 IconButton(
                   tooltip: 'الإعدادات',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SettingsPage(
-                          core: appCore,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _openSettings,
                   icon: const Icon(
                     Icons.settings_outlined,
                     color: Colors.white,
@@ -1695,17 +1496,23 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             body: IndexedStack(
               index: currentIndex,
               children: [
-                ChatsPage(core: appCore),
-                GroupsPage(core: appCore),
-                CallsPage(core: appCore),
-                StatusPage(core: appCore),
-                ChannelsPage(core: appCore),
+                ChatsPage(core: core),
+                GroupsPage(core: core),
+                CallsPage(core: core),
+                StatusPage(core: core),
+                ChannelsPage(core: core),
               ],
             ),
             bottomNavigationBar: NavigationBar(
-              backgroundColor: panel,
+              backgroundColor: fahadPanel,
               selectedIndex: currentIndex,
               indicatorColor: const Color(0x33D4AF37),
+              labelTextStyle:
+                  WidgetStateProperty.all(
+                const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onDestinationSelected: (index) {
                 setState(() {
                   currentIndex = index;
@@ -1713,42 +1520,140 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               },
               destinations: const [
                 NavigationDestination(
-                  icon: Icon(Icons.chat_bubble_outline),
-                  selectedIcon: Icon(Icons.chat_bubble),
+                  icon: Icon(
+                    Icons.chat_bubble_outline,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.chat_bubble,
+                    color: fahadGold,
+                  ),
                   label: 'الدردشات',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.groups_outlined),
-                  selectedIcon: Icon(Icons.groups),
+                  icon: Icon(
+                    Icons.groups_outlined,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.groups,
+                    color: fahadGold,
+                  ),
                   label: 'المجموعات',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.call_outlined),
-                  selectedIcon: Icon(Icons.call),
+                  icon: Icon(
+                    Icons.call_outlined,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.call,
+                    color: fahadGold,
+                  ),
                   label: 'المكالمات',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.circle_outlined),
-                  selectedIcon: Icon(Icons.circle),
+                  icon: Icon(
+                    Icons.circle_outlined,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.circle,
+                    color: fahadGold,
+                  ),
                   label: 'الحالة',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.campaign_outlined),
-                  selectedIcon: Icon(Icons.campaign),
+                  icon: Icon(
+                    Icons.campaign_outlined,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.campaign,
+                    color: fahadGold,
+                  ),
                   label: 'القنوات',
                 ),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openCreateStatus() {
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        final controller = TextEditingController();
+
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text(
+            'إضافة حالة',
+            textAlign: TextAlign.right,
           ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'اكتب حالتك...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () async {
+                await core.createStatus(
+                  text: controller.text,
+                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('نشر'),
+            ),
+          ],
         );
       },
     );
   }
+
+  void _openSearch() {
+    showSearch<void>(
+      context: context,
+      delegate: FahadSearchDelegate(core),
+    );
+  }
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(core: core),
+      ),
+    );
+  }
 }
 
-/// ===============================================================
-/// CHATS
-/// ===============================================================
+/* ============================================================
+   💬 CHATS
+   ============================================================ */
 
 class ChatsPage extends StatelessWidget {
   final AlWazirCore core;
@@ -1760,97 +1665,225 @@ class ChatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: core,
-      builder: (context, _) {
-        final chats = [...core.chats];
+    final list = [...core.chats];
 
-        chats.sort(
-          (a, b) {
-            if (a.pinned != b.pinned) {
-              return a.pinned ? -1 : 1;
-            }
-
-            final aTime =
-                a.lastTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-            final bTime =
-                b.lastTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-            return bTime.compareTo(aTime);
-          },
-        );
-
-        if (chats.isEmpty) {
-          return _EmptyState(
-            icon: Icons.chat_bubble_outline,
-            title: 'لا توجد دردشات بعد',
-            subtitle: 'ابدأ محادثة جديدة لتظهر هنا',
-            actionText: 'دردشة جديدة',
-            onAction: () {
-              _showNewChatDialog(context, core);
-            },
-          );
+    list.sort(
+      (a, b) {
+        if (a.pinned != b.pinned) {
+          return a.pinned ? -1 : 1;
         }
 
-        return Stack(
-          children: [
-            ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                90,
-              ),
-              itemCount: chats.length,
-              itemBuilder: (context, index) {
-                final chat = chats[index];
+        final at =
+            a.lastTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bt =
+            b.lastTime ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-                return _ChatTile(
-                  chat: chat,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatRoomScreen(
-                          core: core,
-                          chatId: chat.id,
-                        ),
-                      ),
-                    );
-                  },
-                  onLongPress: () {
-                    _showChatOptions(
-                      context,
-                      core,
-                      chat,
-                    );
-                  },
+        return bt.compareTo(at);
+      },
+    );
+
+    if (list.isEmpty) {
+      return _EmptyState(
+        icon: Icons.chat_bubble_outline,
+        title: 'لا توجد محادثات بعد',
+        subtitle: 'ابدأ محادثة جديدة ليتم حفظها هنا',
+        actionText: 'بدء محادثة',
+        onAction: () async {
+          await _createChat(context);
+        },
+      );
+    }
+
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            90,
+          ),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final chat = list[index];
+
+            return _ChatTile(
+              chat: chat,
+              onTap: () async {
+                await core.markRead(chat.id);
+
+                if (!context.mounted) return;
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatRoomScreen(
+                      core: core,
+                      chatId: chat.id,
+                    ),
+                  ),
                 );
               },
-            ),
-            Positioned(
-              left: 20,
-              bottom: 20,
-              child: FloatingActionButton(
-                backgroundColor: kGold,
-                foregroundColor: Colors.black,
-                onPressed: () {
-                  _showNewChatDialog(context, core);
-                },
-                child: const Icon(Icons.chat),
+              onLongPress: () {
+                _chatMenu(context, chat);
+              },
+            );
+          },
+        ),
+        Positioned(
+          left: 20,
+          bottom: 20,
+          child: FloatingActionButton(
+            backgroundColor: fahadGold,
+            foregroundColor: Colors.black,
+            onPressed: () => _createChat(context),
+            child: const Icon(Icons.chat),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _createChat(BuildContext context) async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('محادثة جديدة'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'اسم الشخص',
+                ),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'رقم الهاتف',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  return;
+                }
+
+                Navigator.pop(context, true);
+              },
+              child: const Text('إنشاء'),
             ),
           ],
         );
       },
     );
+
+    if (result != true) return;
+
+    final id =
+        'chat_${DateTime.now().microsecondsSinceEpoch}';
+
+    await core.ensureChat(
+      id: id,
+      name: nameController.text.trim(),
+      phone: phoneController.text.trim(),
+    );
+
+    if (!context.mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatRoomScreen(
+          core: core,
+          chatId: id,
+        ),
+      ),
+    );
+  }
+
+  void _chatMenu(
+    BuildContext context,
+    AlWazirChat chat,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: fahadPanel,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.push_pin_outlined,
+                  color: fahadGold,
+                ),
+                title: Text(
+                  chat.pinned
+                      ? 'إلغاء التثبيت'
+                      : 'تثبيت المحادثة',
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await core.toggleChatPinned(chat.id);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.notifications_off_outlined,
+                  color: fahadGold,
+                ),
+                title: Text(
+                  chat.muted
+                      ? 'إلغاء الكتم'
+                      : 'كتم المحادثة',
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await core.toggleChatMuted(chat.id);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.lock_outline,
+                  color: fahadGold,
+                ),
+                title: Text(
+                  chat.locked
+                      ? 'إلغاء قفل المحادثة'
+                      : 'قفل المحادثة',
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await core.toggleChatLocked(chat.id);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
-
-/// ===============================================================
-/// CHAT TILE
-/// ===============================================================
 
 class _ChatTile extends StatelessWidget {
   final AlWazirChat chat;
@@ -1866,14 +1899,18 @@ class _ChatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: kPanel,
+      color: fahadPanel,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         onTap: onTap,
         onLongPress: onLongPress,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 3,
+        ),
         leading: CircleAvatar(
           radius: 27,
-          backgroundColor: kGold,
+          backgroundColor: fahadGold,
           child: Text(
             chat.name.isEmpty
                 ? '?'
@@ -1890,8 +1927,6 @@ class _ChatTile extends StatelessWidget {
             Expanded(
               child: Text(
                 chat.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1900,15 +1935,15 @@ class _ChatTile extends StatelessWidget {
             if (chat.pinned)
               const Icon(
                 Icons.push_pin,
-                size: 16,
-                color: kGold,
+                size: 15,
+                color: fahadGold,
               ),
             if (chat.muted)
               const Padding(
                 padding: EdgeInsets.only(right: 5),
                 child: Icon(
-                  Icons.volume_off,
-                  size: 16,
+                  Icons.notifications_off,
+                  size: 15,
                   color: Colors.white54,
                 ),
               ),
@@ -1925,9 +1960,7 @@ class _ChatTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              chat.lastTime == null
-                  ? ''
-                  : _dayText(chat.lastTime!),
+              _formatTime(chat.lastTime),
               style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 11,
@@ -1937,12 +1970,12 @@ class _ChatTile extends StatelessWidget {
               const SizedBox(height: 5),
               CircleAvatar(
                 radius: 10,
-                backgroundColor: kGold,
+                backgroundColor: fahadGold,
                 child: Text(
                   '${chat.unread}',
                   style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1955,9 +1988,9 @@ class _ChatTile extends StatelessWidget {
   }
 }
 
-/// ===============================================================
-/// CHAT ROOM
-/// ===============================================================
+/* ============================================================
+   💬 CHAT ROOM
+   ============================================================ */
 
 class ChatRoomScreen extends StatefulWidget {
   final AlWazirCore core;
@@ -1974,63 +2007,25 @@ class ChatRoomScreen extends StatefulWidget {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
-  final TextEditingController messageController =
+  final TextEditingController controller =
       TextEditingController();
 
-  final ScrollController scrollController =
-      ScrollController();
+  final FocusNode focusNode = FocusNode();
 
-  AlWazirMessage? replyMessage;
+  String replyTo = '';
 
   @override
   void initState() {
     super.initState();
 
     widget.core.markRead(widget.chatId);
-
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _scrollToBottom(),
-    );
   }
 
   @override
   void dispose() {
-    messageController.dispose();
-    scrollController.dispose();
+    controller.dispose();
+    focusNode.dispose();
     super.dispose();
-  }
-
-  void _scrollToBottom() {
-    if (!scrollController.hasClients) return;
-
-    scrollController.animateTo(
-      scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
-  }
-
-  Future<void> _send() async {
-    final text = messageController.text.trim();
-
-    if (text.isEmpty) return;
-
-    await widget.core.sendMessage(
-      chatId: widget.chatId,
-      text: text,
-      replyToId: replyMessage?.id ?? '',
-      replyText: replyMessage?.text ?? '',
-    );
-
-    messageController.clear();
-
-    setState(() {
-      replyMessage = null;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _scrollToBottom(),
-    );
   }
 
   @override
@@ -2040,30 +2035,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: kBackground,
+        backgroundColor: fahadBackground,
         appBar: AppBar(
-          backgroundColor: kAppBar,
+          backgroundColor: fahadAppBar,
           titleSpacing: 0,
           title: Row(
             children: [
               CircleAvatar(
-                backgroundColor: kGold,
+                backgroundColor: fahadGold,
                 foregroundColor: Colors.black,
                 child: Text(
-                  chat?.name.characters.first ?? '?',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  chat?.name.isNotEmpty == true
+                      ? chat!.name.characters.first
+                      : '?',
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  chat?.name ?? 'محادثة',
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chat?.name ?? 'محادثة',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'متصل',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -2071,117 +2078,95 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           actions: [
             IconButton(
               onPressed: () {
-                _showChatRoomOptions(context);
+                _startCall(CallType.video);
               },
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(
+                Icons.videocam_outlined,
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                _startCall(CallType.voice);
+              },
+              icon: const Icon(
+                Icons.call_outlined,
+              ),
             ),
           ],
         ),
         body: AnimatedBuilder(
           animation: widget.core,
           builder: (context, _) {
-            final list = widget.core
-                .chatMessages(widget.chatId)
-                .where((message) => !message.deletedForMe)
-                .toList();
+            final items =
+                widget.core.chatMessages(widget.chatId);
 
             return Column(
               children: [
                 Expanded(
-                  child: list.isEmpty
+                  child: items.isEmpty
                       ? const _EmptyState(
-                          icon: Icons.forum_outlined,
+                          icon: Icons.chat_bubble_outline,
                           title: 'لا توجد رسائل',
                           subtitle:
-                              'اكتب أول رسالة لبدء المحادثة',
+                              'ابدأ المحادثة الآن',
                         )
                       : ListView.builder(
-                          controller: scrollController,
+                          reverse: false,
                           padding: const EdgeInsets.all(12),
-                          itemCount: list.length,
+                          itemCount: items.length,
                           itemBuilder: (context, index) {
-                            final message = list[index];
+                            final message = items[index];
+
+                            if (message.deletedForMe) {
+                              return const SizedBox.shrink();
+                            }
 
                             return _MessageBubble(
                               message: message,
-                              onReply: () {
-                                setState(() {
-                                  replyMessage = message;
-                                });
-                              },
-                              onDeleteMe: () {
-                                widget.core.deleteForMe(
-                                  widget.chatId,
-                                  message.id,
-                                );
-                              },
-                              onDeleteEveryone: () {
-                                widget.core.deleteForEveryone(
-                                  widget.chatId,
-                                  message.id,
-                                );
-                              },
-                              onEdit: () {
-                                _editMessage(
-                                  context,
-                                  message,
-                                );
-                              },
-                              onPin: () {
-                                widget.core.togglePinnedMessage(
-                                  widget.chatId,
-                                  message.id,
-                                );
+                              onLongPress: () {
+                                _messageMenu(message);
                               },
                             );
                           },
                         ),
                 ),
-                if (replyMessage != null)
+                if (replyTo.isNotEmpty)
                   Container(
                     width: double.infinity,
-                    color: kPanel,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    color: fahadPanel,
+                    padding: const EdgeInsets.all(10),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.reply,
-                          color: kGold,
+                          color: fahadGold,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            replyMessage!.text,
+                            'الرد على: $replyTo',
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            overflow:
+                                TextOverflow.ellipsis,
                           ),
                         ),
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              replyMessage = null;
+                              replyTo = '';
                             });
                           },
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white54,
-                          ),
+                          icon: const Icon(Icons.close),
                         ),
                       ],
                     ),
                   ),
                 _Composer(
-                  controller: messageController,
+                  controller: controller,
+                  focusNode: focusNode,
                   onSend: _send,
-                  onAttachment: () {
-                    _showAttachmentSheet(context);
-                  },
-                  onVoice: () {
-                    _showVoiceInfo(context);
-                  },
+                  onAttach: _attachments,
+                  onVoice: _voice,
                 ),
               ],
             );
@@ -2191,27 +2176,237 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  void _editMessage(
-    BuildContext context,
-    AlWazirMessage message,
-  ) {
-    final controller = TextEditingController(
+  Future<void> _send() async {
+    final text = controller.text.trim();
+
+    if (text.isEmpty) return;
+
+    await widget.core.sendMessage(
+      chatId: widget.chatId,
+      text: text,
+      replyTo: replyTo,
+    );
+
+    controller.clear();
+
+    setState(() {
+      replyTo = '';
+    });
+
+    focusNode.requestFocus();
+  }
+
+  void _attachments() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: fahadPanel,
+      builder: (_) {
+        return SafeArea(
+          child: GridView.count(
+            shrinkWrap: true,
+            crossAxisCount: 4,
+            padding: const EdgeInsets.all(16),
+            children: [
+              _AttachItem(
+                icon: Icons.photo,
+                label: 'المعرض',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('المعرض');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.camera_alt,
+                label: 'الكاميرا',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('الكاميرا');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.videocam,
+                label: 'فيديو',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('الفيديو');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.insert_drive_file,
+                label: 'ملف',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('الملفات');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.location_on,
+                label: 'الموقع',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('الموقع');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.contact_page,
+                label: 'جهة اتصال',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('جهات الاتصال');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.gif_box,
+                label: 'GIF',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('GIF');
+                },
+              ),
+              _AttachItem(
+                icon: Icons.emoji_emotions,
+                label: 'ملصق',
+                onTap: () {
+                  Navigator.pop(context);
+                  _notReady('الملصقات');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _voice() {
+    _notReady(
+      'التسجيل الصوتي الحقيقي سيكون في مرحلة ربط record',
+    );
+  }
+
+  void _notReady(String name) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$name جاهز للربط في مرحلة الوسائط الحقيقية',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _messageMenu(AlWazirMessage message) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: fahadPanel,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.reply,
+                  color: fahadGold,
+                ),
+                title: const Text('رد'),
+                onTap: () {
+                  Navigator.pop(context);
+
+                  setState(() {
+                    replyTo = message.text;
+                  });
+
+                  focusNode.requestFocus();
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.push_pin_outlined,
+                  color: fahadGold,
+                ),
+                title: Text(
+                  message.pinned
+                      ? 'إلغاء التثبيت'
+                      : 'تثبيت',
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await widget.core
+                      .togglePinnedMessage(
+                    widget.chatId,
+                    message.id,
+                  );
+                },
+              ),
+              if (message.mine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.edit,
+                    color: fahadGold,
+                  ),
+                  title: const Text('تعديل'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editMessage(message);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.redAccent,
+                ),
+                title: const Text('حذف لدي'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await widget.core.deleteForMe(
+                    widget.chatId,
+                    message.id,
+                  );
+                },
+              ),
+              if (message.mine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_forever,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text(
+                    'حذف للجميع',
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+
+                    await widget.core
+                        .deleteForEveryone(
+                      widget.chatId,
+                      message.id,
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _editMessage(AlWazirMessage message) {
+    final editController = TextEditingController(
       text: message.text,
     );
 
     showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (_) {
         return AlertDialog(
-          backgroundColor: kPanel,
+          backgroundColor: fahadPanel,
           title: const Text('تعديل الرسالة'),
           content: TextField(
-            controller: controller,
+            controller: editController,
             autofocus: true,
             maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'الرسالة',
-            ),
           ),
           actions: [
             TextButton(
@@ -2220,21 +2415,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: kGold,
+                backgroundColor: fahadGold,
                 foregroundColor: Colors.black,
               ),
               onPressed: () async {
-                final value = controller.text.trim();
+                await widget.core.editMessage(
+                  widget.chatId,
+                  message.id,
+                  editController.text,
+                );
 
-                if (value.isNotEmpty) {
-                  await widget.core.editMessage(
-                    widget.chatId,
-                    message.id,
-                    value,
-                  );
-                }
-
-                if (context.mounted) {
+                if (mounted) {
                   Navigator.pop(context);
                 }
               },
@@ -2246,538 +2437,213 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  void _showChatRoomOptions(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: kPanel,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.search,
-                  color: kGold,
-                ),
-                title: const Text('البحث في المحادثة'),
-                onTap: () {
-                  Navigator.pop(context);
-                  showSearch(
-                    context: context,
-                    delegate: _ChatSearchDelegate(
-                      widget.core,
-                      widget.chatId,
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.push_pin,
-                  color: kGold,
-                ),
-                title: const Text('تثبيت المحادثة'),
-                onTap: () async {
-                  Navigator.pop(context);
+  Future<void> _startCall(CallType type) async {
+    final chat = widget.core.chat(widget.chatId);
 
-                  final chat = widget.core.chat(
-                    widget.chatId,
-                  );
+    if (chat == null) return;
 
-                  if (chat != null) {
-                    await widget.core.toggleChatFlag(
-                      widget.chatId,
-                      pinned: !chat.pinned,
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.volume_off,
-                  color: kGold,
-                ),
-                title: const Text('كتم الإشعارات'),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  final chat = widget.core.chat(
-                    widget.chatId,
-                  );
-
-                  if (chat != null) {
-                    await widget.core.toggleChatFlag(
-                      widget.chatId,
-                      muted: !chat.muted,
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.lock_outline,
-                  color: kGold,
-                ),
-                title: const Text('قفل المحادثة'),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  final chat = widget.core.chat(
-                    widget.chatId,
-                  );
-
-                  if (chat != null) {
-                    await widget.core.toggleChatFlag(
-                      widget.chatId,
-                      locked: !chat.locked,
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
+    await widget.core.addCall(
+      name: chat.name,
+      type: type,
+      direction: CallDirection.outgoing,
     );
-  }
 
-  void _showAttachmentSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: kPanel,
-      builder: (context) {
-        final items = [
-          _AttachItem(
-            icon: Icons.photo,
-            label: 'المعرض',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'المعرض',
-                'ربط image_picker سيتم في خطوة الوسائط الحقيقية.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.camera_alt,
-            label: 'الكاميرا',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'الكاميرا',
-                'ربط الكاميرا سيتم في خطوة الوسائط الحقيقية.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.videocam,
-            label: 'فيديو',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'الفيديو',
-                'سيتم ربط الفيديو وحفظ مساره محليًا.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.insert_drive_file,
-            label: 'ملف',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'الملفات',
-                'سيتم ربط file_picker في خطوة الوسائط.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.location_on,
-            label: 'الموقع',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'الموقع',
-                'سيتم ربط الموقع الجغرافي في خطوة المشاركة.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.person,
-            label: 'جهة اتصال',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'جهة اتصال',
-                'سيتم ربط جهات الاتصال في خطوة المزامنة.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.gif_box,
-            label: 'GIF',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'GIF',
-                'سيتم ربط GIF في خطوة الوسائط.',
-              );
-            },
-          ),
-          _AttachItem(
-            icon: Icons.emoji_emotions,
-            label: 'ملصق',
-            onTap: () {
-              Navigator.pop(context);
-              _showInfo(
-                context,
-                'الملصقات',
-                'سيتم ربط الملصقات في خطوة واجهة الرسائل.',
-              );
-            },
-          ),
-        ];
+    if (!mounted) return;
 
-        return SafeArea(
-          child: GridView.count(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(18),
-            crossAxisCount: 4,
-            children: items,
-          ),
-        );
-      },
-    );
-  }
-
-  void _showVoiceInfo(BuildContext context) {
-    _showInfo(
+    Navigator.push(
       context,
-      '🎤 الرسائل الصوتية',
-      'واجهة التسجيل جاهزة للربط مع record. لن نعتبرها تسجيلًا حقيقيًا حتى يتم ربط API التسجيل وحفظ الملف.',
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          core: widget.core,
+          name: chat.name,
+          type: type,
+        ),
+      ),
     );
   }
 }
 
-/// ===============================================================
-/// MESSAGE BUBBLE
-/// ===============================================================
-
 class _MessageBubble extends StatelessWidget {
   final AlWazirMessage message;
-  final VoidCallback onReply;
-  final VoidCallback onDeleteMe;
-  final VoidCallback onDeleteEveryone;
-  final VoidCallback onEdit;
-  final VoidCallback onPin;
+  final VoidCallback onLongPress;
 
   const _MessageBubble({
     required this.message,
-    required this.onReply,
-    required this.onDeleteMe,
-    required this.onDeleteEveryone,
-    required this.onEdit,
-    required this.onPin,
+    required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    final mine = message.senderId == 'me';
+    final mine = message.mine;
 
     return Align(
       alignment:
           mine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onLongPress: () {
-          _showMessageMenu(context);
-        },
+        onLongPress: onLongPress,
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * .78,
+          constraints: const BoxConstraints(
+            maxWidth: 330,
           ),
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 7),
           padding: const EdgeInsets.fromLTRB(
             12,
-            8,
-            12,
+            9,
+            10,
             7,
           ),
           decoration: BoxDecoration(
-            color: mine ? const Color(0xFF315044) : kPanel,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(
-                mine ? 16 : 4,
-              ),
-              bottomRight: Radius.circular(
-                mine ? 4 : 16,
-              ),
-            ),
+            color: mine
+                ? const Color(0xFF304A3B)
+                : fahadPanel,
+            borderRadius: BorderRadius.circular(15),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment:
+                CrossAxisAlignment.end,
             children: [
-              if (message.pinned)
-                const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.push_pin,
-                      size: 13,
-                      color: kGold,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'مثبتة',
-                      style: TextStyle(
-                        color: kGold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              if (message.replyText.isNotEmpty)
+              if (message.replyTo.isNotEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(7),
                   margin: const EdgeInsets.only(bottom: 6),
                   decoration: BoxDecoration(
                     color: Colors.black12,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius:
+                        BorderRadius.circular(8),
                   ),
                   child: Text(
-                    message.replyText,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    message.replyTo,
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                     ),
                   ),
                 ),
-              if (message.deletedForEveryone)
-                const Text(
-                  'تم حذف هذه الرسالة',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-              else if (message.type == MessageType.text)
-                Text(
-                  message.text,
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
-                )
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _messageIcon(message.type),
-                      color: kGold,
-                    ),
-                    const SizedBox(width: 7),
-                    Text(
-                      _messageTypeText(message.type),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 3),
               Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment:
+                    CrossAxisAlignment.end,
                 children: [
-                  if (message.edited)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4),
-                      child: Text(
-                        'معدلة',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 10,
-                        ),
+                  Flexible(
+                    child: Text(
+                      message.deletedForEveryone
+                          ? 'تم حذف هذه الرسالة'
+                          : message.text,
+                      style: TextStyle(
+                        color: message.deletedForEveryone
+                            ? Colors.white54
+                            : Colors.white,
+                        fontStyle:
+                            message.deletedForEveryone
+                                ? FontStyle.italic
+                                : FontStyle.normal,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    _dateTimeText(message.createdAt),
+                    _formatTime(message.time),
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 10,
                     ),
                   ),
                   if (mine) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      message.status == MessageStatus.read
-                          ? Icons.done_all
-                          : Icons.done,
-                      size: 15,
-                      color:
-                          message.status == MessageStatus.read
-                              ? kGold
-                              : Colors.white54,
+                    const SizedBox(width: 3),
+                    _StatusIcon(
+                      status: message.status,
                     ),
                   ],
                 ],
               ),
+              if (message.edited)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'معدلة',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              if (message.pinned)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Icon(
+                    Icons.push_pin,
+                    size: 13,
+                    color: fahadGold,
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  IconData _messageIcon(MessageType type) {
-    switch (type) {
-      case MessageType.image:
-        return Icons.photo;
-      case MessageType.video:
-        return Icons.videocam;
-      case MessageType.file:
-        return Icons.insert_drive_file;
-      case MessageType.audio:
-        return Icons.mic;
-      case MessageType.location:
-        return Icons.location_on;
-      case MessageType.contact:
-        return Icons.person;
-      case MessageType.sticker:
-        return Icons.emoji_emotions;
-      case MessageType.gif:
-        return Icons.gif_box;
-      case MessageType.text:
-        return Icons.message;
-    }
-  }
+class _StatusIcon extends StatelessWidget {
+  final MessageStatus status;
 
-  String _messageTypeText(MessageType type) {
-    switch (type) {
-      case MessageType.image:
-        return 'صورة';
-      case MessageType.video:
-        return 'فيديو';
-      case MessageType.file:
-        return 'ملف';
-      case MessageType.audio:
-        return 'رسالة صوتية';
-      case MessageType.location:
-        return 'الموقع';
-      case MessageType.contact:
-        return 'جهة اتصال';
-      case MessageType.sticker:
-        return 'ملصق';
-      case MessageType.gif:
-        return 'GIF';
-      case MessageType.text:
-        return '';
-    }
-  }
+  const _StatusIcon({
+    required this.status,
+  });
 
-  void _showMessageMenu(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: kPanel,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.reply,
-                  color: kGold,
-                ),
-                title: const Text('رد'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onReply();
-                },
-              ),
-              if (message.type == MessageType.text &&
-                  !message.deletedForEveryone)
-                ListTile(
-                  leading: const Icon(
-                    Icons.edit,
-                    color: kGold,
-                  ),
-                  title: const Text('تعديل'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onEdit();
-                  },
-                ),
-              ListTile(
-                leading: Icon(
-                  message.pinned
-                      ? Icons.push_pin_outlined
-                      : Icons.push_pin,
-                  color: kGold,
-                ),
-                title: Text(
-                  message.pinned
-                      ? 'إلغاء التثبيت'
-                      : 'تثبيت',
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onPin();
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.redAccent,
-                ),
-                title: const Text('حذف لدي'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onDeleteMe();
-                },
-              ),
-              if (message.senderId == 'me')
-                ListTile(
-                  leading: const Icon(
-                    Icons.delete_forever,
-                    color: Colors.redAccent,
-                  ),
-                  title: const Text('حذف لدى الجميع'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onDeleteEveryone();
-                  },
-                ),
-            ],
-          ),
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case MessageStatus.sending:
+        return const Icon(
+          Icons.access_time,
+          size: 14,
+          color: Colors.white54,
         );
-      },
-    );
+      case MessageStatus.sent:
+        return const Icon(
+          Icons.check,
+          size: 14,
+          color: Colors.white54,
+        );
+      case MessageStatus.delivered:
+        return const Icon(
+          Icons.done_all,
+          size: 14,
+          color: Colors.white54,
+        );
+      case MessageStatus.read:
+        return const Icon(
+          Icons.done_all,
+          size: 14,
+          color: fahadGold,
+        );
+      case MessageStatus.failed:
+        return const Icon(
+          Icons.error_outline,
+          size: 14,
+          color: Colors.redAccent,
+        );
+    }
   }
 }
 
-/// ===============================================================
-/// COMPOSER
-/// ===============================================================
-
 class _Composer extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final VoidCallback onSend;
-  final VoidCallback onAttachment;
+  final VoidCallback onAttach;
   final VoidCallback onVoice;
 
   const _Composer({
     required this.controller,
+    required this.focusNode,
     required this.onSend,
-    required this.onAttachment,
+    required this.onAttach,
     required this.onVoice,
   });
 
@@ -2786,57 +2652,51 @@ class _Composer extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        color: kAppBar,
+        color: fahadAppBar,
         padding: const EdgeInsets.fromLTRB(
-          8,
           7,
-          8,
+          7,
+          7,
           7,
         ),
         child: Row(
           children: [
             IconButton(
-              onPressed: onAttachment,
+              onPressed: onAttach,
               icon: const Icon(
-                Icons.attach_file,
-                color: kGold,
+                Icons.add_circle_outline,
+                color: fahadGold,
               ),
             ),
             Expanded(
               child: TextField(
                 controller: controller,
-                textDirection: TextDirection.rtl,
+                focusNode: focusNode,
+                textInputAction:
+                    TextInputAction.newline,
                 minLines: 1,
                 maxLines: 5,
-                textInputAction: TextInputAction.newline,
                 decoration: InputDecoration(
-                  hintText: 'اكتب رسالة',
+                  hintText: 'اكتب رسالة...',
                   filled: true,
-                  fillColor: kPanel,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.emoji_emotions_outlined,
-                    color: Colors.white54,
+                  fillColor: fahadPanel,
+                  prefixIcon: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.emoji_emotions_outlined,
+                    ),
                   ),
                   suffixIcon: IconButton(
-                    onPressed: () {
-                      _showInfo(
-                        context,
-                        'GIF والملصقات',
-                        'ستتم إضافة لوحة GIF والملصقات في خطوة واجهة الوسائط.',
-                      );
-                    },
+                    onPressed: () {},
                     icon: const Icon(
                       Icons.gif_box_outlined,
-                      color: Colors.white54,
+                      color: fahadGold,
                     ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
@@ -2845,15 +2705,19 @@ class _Composer extends StatelessWidget {
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: controller,
               builder: (context, value, _) {
-                final hasText = value.text.trim().isNotEmpty;
+                final hasText =
+                    value.text.trim().isNotEmpty;
 
                 return CircleAvatar(
-                  backgroundColor: kGold,
+                  backgroundColor: fahadGold,
                   foregroundColor: Colors.black,
                   child: IconButton(
-                    onPressed: hasText ? onSend : onVoice,
+                    onPressed:
+                        hasText ? onSend : onVoice,
                     icon: Icon(
-                      hasText ? Icons.send : Icons.mic,
+                      hasText
+                          ? Icons.send
+                          : Icons.mic,
                     ),
                   ),
                 );
@@ -2865,10 +2729,6 @@ class _Composer extends StatelessWidget {
     );
   }
 }
-
-/// ===============================================================
-/// ATTACHMENT ITEM
-/// ===============================================================
 
 class _AttachItem extends StatelessWidget {
   final IconData icon;
@@ -2885,17 +2745,17 @@ class _AttachItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment:
+            MainAxisAlignment.center,
         children: [
           CircleAvatar(
             radius: 25,
-            backgroundColor: kGold,
+            backgroundColor: fahadGold,
             foregroundColor: Colors.black,
             child: Icon(icon),
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 6),
           Text(
             label,
             style: const TextStyle(
@@ -2908,9 +2768,9 @@ class _AttachItem extends StatelessWidget {
   }
 }
 
-/// ===============================================================
-/// GROUPS
-/// ===============================================================
+/* ============================================================
+   👥 GROUPS
+   ============================================================ */
 
 class GroupsPage extends StatelessWidget {
   final AlWazirCore core;
@@ -2922,53 +2782,106 @@ class GroupsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: core,
-      builder: (context, _) {
-        if (core.groups.isEmpty) {
-          return _EmptyState(
-            icon: Icons.groups_outlined,
-            title: 'لا توجد مجموعات',
-            subtitle: 'أنشئ أول مجموعة في الفهد',
-            actionText: 'إنشاء مجموعة',
-            onAction: () {
-              _showCreateGroupDialog(context, core);
-            },
-          );
-        }
+    if (core.groups.isEmpty) {
+      return _EmptyState(
+        icon: Icons.groups_outlined,
+        title: 'لا توجد مجموعات',
+        subtitle: 'أنشئ مجموعة جديدة وابدأ',
+        actionText: 'إنشاء مجموعة',
+        onAction: () => _createGroup(context),
+      );
+    }
 
-        return Stack(
-          children: [
-            ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                90,
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            90,
+          ),
+          itemCount: core.groups.length,
+          itemBuilder: (_, index) {
+            final group = core.groups[index];
+
+            return Card(
+              color: fahadPanel,
+              margin:
+                  const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: fahadGold,
+                  foregroundColor: Colors.black,
+                  child: Icon(Icons.groups),
+                ),
+                title: Text(
+                  group.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  '${group.members.length} عضو',
+                ),
+                trailing: const Icon(
+                  Icons.chevron_left,
+                  color: fahadGold,
+                ),
               ),
-              itemCount: core.groups.length,
-              itemBuilder: (context, index) {
-                final group = core.groups[index];
+            );
+          },
+        ),
+        Positioned(
+          left: 20,
+          bottom: 20,
+          child: FloatingActionButton(
+            backgroundColor: fahadGold,
+            foregroundColor: Colors.black,
+            onPressed: () => _createGroup(context),
+            child: const Icon(Icons.group_add),
+          ),
+        ),
+      ],
+    );
+  }
 
-                return _GroupTile(
-                  group: group,
-                  onTap: () {
-                    _showGroupInfo(context, group);
-                  },
-                );
-              },
+  void _createGroup(BuildContext context) {
+    final controller = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('إنشاء مجموعة'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'اسم المجموعة',
             ),
-            Positioned(
-              left: 20,
-              bottom: 20,
-              child: FloatingActionButton(
-                backgroundColor: kGold,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
                 foregroundColor: Colors.black,
-                onPressed: () {
-                  _showCreateGroupDialog(context, core);
-                },
-                child: const Icon(Icons.group_add),
               ),
+              onPressed: () async {
+                await core.createGroup(
+                  name: controller.text,
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('إنشاء'),
             ),
           ],
         );
@@ -2977,48 +2890,9 @@ class GroupsPage extends StatelessWidget {
   }
 }
 
-class _GroupTile extends StatelessWidget {
-  final AlWazirGroup group;
-  final VoidCallback onTap;
-
-  const _GroupTile({
-    required this.group,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: kPanel,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        onTap: onTap,
-        leading: const CircleAvatar(
-          backgroundColor: kGold,
-          foregroundColor: Colors.black,
-          child: Icon(Icons.groups),
-        ),
-        title: Text(
-          group.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Text(
-          '${group.members.length} عضو',
-        ),
-        trailing: const Icon(
-          Icons.chevron_left,
-          color: kGold,
-        ),
-      ),
-    );
-  }
-}
-
-/// ===============================================================
-/// CALLS
-/// ===============================================================
+/* ============================================================
+   📞 CALLS
+   ============================================================ */
 
 class CallsPage extends StatelessWidget {
   final AlWazirCore core;
@@ -3030,34 +2904,79 @@ class CallsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: core,
-      builder: (context, _) {
-        if (core.calls.isEmpty) {
-          return _EmptyState(
-            icon: Icons.call_outlined,
-            title: 'لا يوجد سجل مكالمات',
-            subtitle: 'سيظهر سجل المكالمات هنا بعد إجراء المكالمات',
-            actionText: 'اختبار الواجهة',
-            onAction: () async {
-              await core.addCall(
-                name: 'محمد',
-                type: CallType.voice,
-                direction: CallDirection.outgoing,
-              );
-            },
-          );
-        }
+    if (core.calls.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.call_outlined,
+        title: 'لا يوجد سجل مكالمات',
+        subtitle: 'ستظهر المكالمات هنا بعد استخدامها',
+      );
+    }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: core.calls.length,
-          itemBuilder: (context, index) {
-            final call = core.calls[index];
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: core.calls.length,
+      itemBuilder: (_, index) {
+        final call = core.calls[index];
 
-            return _CallTile(
-              call: call,
-              onCall: () {
+        final missed =
+            call.direction == CallDirection.missed;
+
+        return Card(
+          color: fahadPanel,
+          margin:
+              const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: fahadGold,
+              foregroundColor: Colors.black,
+              child: Icon(
+                call.type == CallType.video
+                    ? Icons.videocam
+                    : missed
+                        ? Icons.call_missed
+                        : Icons.call,
+              ),
+            ),
+            title: Text(
+              call.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Row(
+              children: [
+                Icon(
+                  call.direction ==
+                          CallDirection.incoming
+                      ? Icons.call_received
+                      : call.direction ==
+                              CallDirection.missed
+                          ? Icons.call_missed
+                          : Icons.call_made,
+                  size: 15,
+                  color: missed
+                      ? Colors.redAccent
+                      : fahadGold,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  call.type == CallType.video
+                      ? 'مكالمة فيديو'
+                      : 'مكالمة صوتية',
+                ),
+              ],
+            ),
+            trailing: IconButton(
+              onPressed: () async {
+                await core.addCall(
+                  name: call.name,
+                  type: call.type,
+                  direction:
+                      CallDirection.outgoing,
+                );
+
+                if (!context.mounted) return;
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -3069,90 +2988,23 @@ class CallsPage extends StatelessWidget {
                   ),
                 );
               },
-            );
-          },
+              icon: Icon(
+                call.type == CallType.video
+                    ? Icons.videocam
+                    : Icons.call,
+                color: fahadGold,
+              ),
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _CallTile extends StatelessWidget {
-  final AlWazirCall call;
-  final VoidCallback onCall;
-
-  const _CallTile({
-    required this.call,
-    required this.onCall,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final missed =
-        call.direction == CallDirection.missed;
-
-    final incoming =
-        call.direction == CallDirection.incoming;
-
-    return Card(
-      color: kPanel,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: kGold,
-          foregroundColor: Colors.black,
-          child: Icon(
-            missed
-                ? Icons.call_missed
-                : call.type == CallType.video
-                    ? Icons.videocam
-                    : Icons.call,
-          ),
-        ),
-        title: Text(call.name),
-        subtitle: Row(
-          children: [
-            Icon(
-              incoming
-                  ? Icons.call_received
-                  : Icons.call_made,
-              size: 15,
-              color:
-                  missed ? Colors.redAccent : kGold,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              call.type == CallType.video
-                  ? 'مكالمة فيديو'
-                  : 'مكالمة صوتية',
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _relativeTime(call.createdAt),
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          onPressed: onCall,
-          icon: Icon(
-            call.type == CallType.video
-                ? Icons.videocam
-                : Icons.call,
-            color: kGold,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// ===============================================================
-/// STATUS
-/// ===============================================================
+/* ============================================================
+   📸 STATUS
+   ============================================================ */
 
 class StatusPage extends StatelessWidget {
   final AlWazirCore core;
@@ -3164,101 +3016,170 @@ class StatusPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: core,
-      builder: (context, _) {
-        final statuses =
-            core.statuses.where((e) => !e.expired).toList();
+    final statuses = core.statuses;
 
-        return Stack(
+    return Stack(
+      children: [
+        ListView(
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            90,
+          ),
           children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                90,
-              ),
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 55,
-                    height: 55,
-                    decoration: const BoxDecoration(
-                      color: kGold,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.add,
-                      color: Colors.black,
-                    ),
+            Card(
+              color: fahadPanel,
+              child: ListTile(
+                leading: Container(
+                  width: 55,
+                  height: 55,
+                  decoration:
+                      const BoxDecoration(
+                    color: fahadGold,
+                    shape: BoxShape.circle,
                   ),
-                  title: Text(
-                    core.account.name.isEmpty
-                        ? 'حالتي'
-                        : core.account.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.black,
                   ),
-                  subtitle: const Text(
-                    'إضافة حالة جديدة',
-                  ),
-                  onTap: () {
-                    _showStatusDialog(context, core);
-                  },
                 ),
-                const Divider(),
-                const Text(
-                  'الحالات الأخيرة',
+                title: const Text(
+                  'حالتي',
                   style: TextStyle(
-                    color: kGold,
                     fontWeight: FontWeight.bold,
-                    fontSize: 17,
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (statuses.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 35),
-                    child: Center(
-                      child: Text(
-                        'لا توجد حالات منشورة حاليًا',
-                        style: TextStyle(
-                          color: Colors.white54,
-                        ),
+                subtitle: const Text(
+                  'إضافة حالة جديدة',
+                ),
+                onTap: () =>
+                    _addStatus(context),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (statuses.isNotEmpty)
+              const Text(
+                'حالاتي',
+                style: TextStyle(
+                  color: fahadGold,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                ),
+              ),
+            const SizedBox(height: 8),
+            ...statuses.map(
+              (status) {
+                return Card(
+                  color: fahadPanel,
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: fahadGold,
+                      foregroundColor: Colors.black,
+                      child: Icon(
+                        Icons.circle,
                       ),
                     ),
-                  )
-                else
-                  ...statuses.map(
-                    (status) => _StatusTile(
-                      status: status,
-                      onTap: () {
-                        _showStatusView(
-                          context,
-                          status,
+                    title: Text(
+                      status.text.isEmpty
+                          ? 'حالة وسائط'
+                          : status.text,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      'المشاهدات: ${status.views}',
+                    ),
+                    trailing: IconButton(
+                      onPressed: () async {
+                        await core.deleteStatus(
+                          status.id,
                         );
                       },
-                      onDelete: () {
-                        core.deleteStatus(status.id);
-                      },
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                      ),
                     ),
                   ),
-              ],
+                );
+              },
             ),
-            Positioned(
-              left: 20,
-              bottom: 20,
-              child: FloatingActionButton(
-                backgroundColor: kGold,
-                foregroundColor: Colors.black,
-                onPressed: () {
-                  _showStatusDialog(context, core);
-                },
-                child: const Icon(Icons.camera_alt),
+            const Divider(height: 30),
+            const Text(
+              'الحالات الأخيرة',
+              style: TextStyle(
+                color: fahadGold,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
               ),
+            ),
+            const SizedBox(height: 10),
+            const _StatusTile(
+              name: 'محمد',
+              time: 'منذ 20 دقيقة',
+            ),
+            const _StatusTile(
+              name: 'أحمد',
+              time: 'منذ ساعة',
+            ),
+          ],
+        ),
+        Positioned(
+          left: 20,
+          bottom: 20,
+          child: FloatingActionButton(
+            backgroundColor: fahadGold,
+            foregroundColor: Colors.black,
+            onPressed: () =>
+                _addStatus(context),
+            child: const Icon(
+              Icons.camera_alt,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _addStatus(BuildContext context) {
+    final controller = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('إضافة حالة'),
+          content: TextField(
+            controller: controller,
+            maxLines: 4,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'اكتب حالتك...',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () async {
+                await core.createStatus(
+                  text: controller.text,
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('نشر'),
             ),
           ],
         );
@@ -3268,34 +3189,30 @@ class StatusPage extends StatelessWidget {
 }
 
 class _StatusTile extends StatelessWidget {
-  final AlWazirStatus status;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final String name;
+  final String time;
 
   const _StatusTile({
-    required this.status,
-    required this.onTap,
-    required this.onDelete,
+    required this.name,
+    required this.time,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      onTap: onTap,
-      onLongPress: onDelete,
       leading: Container(
         width: 54,
         height: 54,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: kGold,
+            color: fahadGold,
             width: 2,
           ),
         ),
         child: const CircleAvatar(
-          backgroundColor: kPanel,
+          backgroundColor: fahadPanel,
           child: Icon(
             Icons.person,
             color: Colors.white,
@@ -3303,25 +3220,19 @@ class _StatusTile extends StatelessWidget {
         ),
       ),
       title: Text(
-        status.ownerName,
+        name,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
         ),
       ),
-      subtitle: Text(
-        '${_relativeTime(status.createdAt)} • ${status.views} مشاهدة',
-      ),
-      trailing: const Icon(
-        Icons.chevron_left,
-        color: kGold,
-      ),
+      subtitle: Text(time),
     );
   }
 }
 
-/// ===============================================================
-/// CHANNELS
-/// ===============================================================
+/* ============================================================
+   📢 CHANNELS
+   ============================================================ */
 
 class ChannelsPage extends StatelessWidget {
   final AlWazirCore core;
@@ -3333,91 +3244,83 @@ class ChannelsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: core,
-      builder: (context, _) {
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            ...core.channels.map(
-              (channel) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _ChannelTile(
-                  channel: channel,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChannelScreen(
-                          core: core,
-                          channelId: channel.id,
-                        ),
-                      ),
-                    );
-                  },
-                  onFollow: () {
-                    core.followChannel(channel.id);
-                  },
-                ),
-              ),
-            ),
-            Card(
-              color: kPanel,
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: kGold,
-                  foregroundColor: Colors.black,
-                  child: Icon(Icons.wifi_tethering),
-                ),
-                title: const Text(
-                  'الاتصال القريب',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        ...core.channels.map(
+          (channel) => _ChannelCard(
+            channel: channel,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChannelPage(
+                    core: core,
+                    channelId: channel.id,
                   ),
                 ),
-                subtitle: const Text(
-                  'البحث عن أجهزة الفهد القريبة',
-                ),
-                trailing: const Icon(
-                  Icons.chevron_left,
-                  color: kGold,
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const NearbyScreen(),
-                    ),
-                  );
-                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          color: fahadPanel,
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: fahadGold,
+              foregroundColor: Colors.black,
+              child: Icon(
+                Icons.wifi_tethering,
               ),
             ),
-          ],
-        );
-      },
+            title: const Text(
+              'الاتصال القريب',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: const Text(
+              'البحث عن أجهزة الفهد القريبة',
+            ),
+            trailing: const Icon(
+              Icons.chevron_left,
+              color: fahadGold,
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NearbyPage(),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _ChannelTile extends StatelessWidget {
+class _ChannelCard extends StatelessWidget {
   final AlWazirChannel channel;
   final VoidCallback onTap;
-  final VoidCallback onFollow;
 
-  const _ChannelTile({
+  const _ChannelCard({
     required this.channel,
     required this.onTap,
-    required this.onFollow,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: kPanel,
+      color: fahadPanel,
+      margin:
+          const EdgeInsets.only(bottom: 10),
       child: ListTile(
         onTap: onTap,
         leading: const CircleAvatar(
-          backgroundColor: kGold,
+          backgroundColor: fahadGold,
           foregroundColor: Colors.black,
           child: Icon(Icons.pets),
         ),
@@ -3436,41 +3339,30 @@ class _ChannelTile extends StatelessWidget {
               const Icon(
                 Icons.verified,
                 size: 17,
-                color: kGold,
+                color: fahadGold,
               ),
             ],
           ],
         ),
         subtitle: Text(
           channel.description,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
-        trailing: TextButton(
-          onPressed: onFollow,
-          child: Text(
-            channel.followed
-                ? 'متابَع'
-                : 'متابعة',
-            style: const TextStyle(
-              color: kGold,
-            ),
-          ),
+        trailing: Icon(
+          channel.following
+              ? Icons.notifications
+              : Icons.notifications_none,
+          color: fahadGold,
         ),
       ),
     );
   }
 }
 
-/// ===============================================================
-/// CHANNEL SCREEN
-/// ===============================================================
-
-class ChannelScreen extends StatelessWidget {
+class ChannelPage extends StatelessWidget {
   final AlWazirCore core;
   final String channelId;
 
-  const ChannelScreen({
+  const ChannelPage({
     super.key,
     required this.core,
     required this.channelId,
@@ -3479,143 +3371,277 @@ class ChannelScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final channel = core.channels.firstWhere(
-      (item) => item.id == channelId,
-      orElse: () => const AlWazirChannel(
-        id: '',
-        name: 'القناة',
-        description: '',
-        verified: false,
-        followed: false,
-        posts: [],
-      ),
+      (e) => e.id == channelId,
     );
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: kBackground,
+        backgroundColor: fahadBackground,
         appBar: AppBar(
-          backgroundColor: kAppBar,
+          backgroundColor: fahadAppBar,
           title: Text(channel.name),
           actions: [
             IconButton(
-              onPressed: () {
-                core.followChannel(channel.id);
+              onPressed: () async {
+                await core.toggleFollowChannel(
+                  channel.id,
+                );
               },
               icon: Icon(
-                channel.followed
-                    ? Icons.notifications_active
+                channel.following
+                    ? Icons.notifications
                     : Icons.notifications_none,
-                color: kGold,
+                color: fahadGold,
               ),
             ),
           ],
         ),
-        floatingActionButton: channel.id.isEmpty
-            ? null
-            : FloatingActionButton(
-                backgroundColor: kGold,
-                foregroundColor: Colors.black,
-                onPressed: () {
-                  _showChannelPostDialog(
-                    context,
-                    core,
-                    channel.id,
-                  );
-                },
-                child: const Icon(Icons.add),
-              ),
         body: AnimatedBuilder(
           animation: core,
           builder: (context, _) {
             final current = core.channels.firstWhere(
-              (item) => item.id == channelId,
-              orElse: () => channel,
+              (e) => e.id == channelId,
             );
 
-            if (current.posts.isEmpty) {
-              return const _EmptyState(
-                icon: Icons.campaign_outlined,
-                title: 'لا توجد منشورات',
-                subtitle: 'لم يتم نشر أي منشور بعد',
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: current.posts.length,
-              itemBuilder: (context, index) {
-                final post = current.posts[index];
-
-                return Card(
-                  color: kPanel,
-                  margin: const EdgeInsets.only(bottom: 12),
+            return ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                Card(
+                  color: fahadPanel,
                   child: Padding(
                     padding: const EdgeInsets.all(15),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              radius: 20,
-                              backgroundColor: kGold,
-                              foregroundColor: Colors.black,
-                              child: Icon(Icons.pets),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                current.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _relativeTime(post.createdAt),
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                        const CircleAvatar(
+                          radius: 30,
+                          backgroundColor: fahadGold,
+                          foregroundColor: Colors.black,
+                          child: Icon(Icons.pets),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          post.text,
-                          style: const TextStyle(
-                            fontSize: 16,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            current.description,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.favorite_border,
-                              color: kGold,
-                            ),
-                            const SizedBox(width: 5),
-                            Text('${post.likes}'),
-                          ],
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(height: 12),
+                if (current.posts.isEmpty)
+                  const _EmptyState(
+                    icon: Icons.campaign_outlined,
+                    title: 'لا توجد منشورات',
+                    subtitle:
+                        'سيتم عرض منشورات القناة هنا',
+                  ),
+                ...current.posts.reversed.map(
+                  (post) => Card(
+                    color: fahadPanel,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          if (post.advertisement)
+                            const Text(
+                              'إعلان',
+                              style: TextStyle(
+                                color: fahadGold,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+                          Text(post.text),
+                          const SizedBox(height: 8),
+                          Text(
+                            _formatTime(
+                              post.createdAt,
+                            ),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: fahadGold,
+          foregroundColor: Colors.black,
+          onPressed: () {
+            _addPost(context, channel.id);
+          },
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+
+  void _addPost(
+    BuildContext context,
+    String id,
+  ) {
+    final controller = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('منشور جديد'),
+          content: TextField(
+            controller: controller,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              hintText: 'اكتب المنشور...',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () async {
+                await core.addChannelPost(
+                  channelId: id,
+                  text: controller.text,
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('نشر'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/* ============================================================
+   🐆 NEARBY — واجهة المرحلة الحالية
+   ============================================================ */
+
+class NearbyPage extends StatefulWidget {
+  const NearbyPage({super.key});
+
+  @override
+  State<NearbyPage> createState() => _NearbyPageState();
+}
+
+class _NearbyPageState extends State<NearbyPage> {
+  bool searching = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: fahadBackground,
+        appBar: AppBar(
+          backgroundColor: fahadAppBar,
+          title: const Text('الاتصال القريب'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration:
+                      const Duration(milliseconds: 500),
+                  width: searching ? 150 : 120,
+                  height: searching ? 150 : 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: fahadGold,
+                      width: 3,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.wifi_tethering,
+                    color: fahadGold,
+                    size: 55,
+                  ),
+                ),
+                const SizedBox(height: 25),
+                Text(
+                  searching
+                      ? 'جاري البحث عن أجهزة الفهد...'
+                      : 'الاتصال القريب مغلق',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Bluetooth + Wi-Fi Direct',
+                  style: TextStyle(
+                    color: Colors.white54,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: fahadGold,
+                    foregroundColor: Colors.black,
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 14,
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      searching = !searching;
+                    });
+                  },
+                  icon: Icon(
+                    searching
+                        ? Icons.stop
+                        : Icons.search,
+                  ),
+                  label: Text(
+                    searching
+                        ? 'إيقاف البحث'
+                        : 'بدء البحث',
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// ===============================================================
-/// SETTINGS
-/// ===============================================================
+/* ============================================================
+   ⚙️ SETTINGS
+   ============================================================ */
 
 class SettingsPage extends StatelessWidget {
   final AlWazirCore core;
@@ -3630,199 +3656,148 @@ class SettingsPage extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: kBackground,
+        backgroundColor: fahadBackground,
         appBar: AppBar(
-          backgroundColor: kAppBar,
+          backgroundColor: fahadAppBar,
           title: const Text('الإعدادات'),
         ),
         body: AnimatedBuilder(
           animation: core,
           builder: (context, _) {
-            final account = core.account;
-            final settings = core.settings;
-
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               children: [
-                Card(
-                  color: kPanel,
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      radius: 30,
-                      backgroundColor: kGold,
-                      foregroundColor: Colors.black,
-                      child: Icon(Icons.person),
-                    ),
-                    title: Text(
-                      account.name.isEmpty
-                          ? 'الملف الشخصي'
-                          : account.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
-                    ),
-                    subtitle: Text(
-                      account.phone.isEmpty
-                          ? 'أضف رقم الهاتف'
-                          : '${account.countryCode} ${account.phone}',
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_left,
-                      color: kGold,
-                    ),
-                    onTap: () {
-                      _showProfileDialog(context, core);
-                    },
-                  ),
+                _ProfileHeader(
+                  account: core.account,
+                  onTap: () {
+                    _editProfile(context);
+                  },
                 ),
                 const SizedBox(height: 12),
-                _settingsSectionTitle('الحساب'),
-                _SettingsTile(
-                  icon: Icons.person_outline,
-                  title: 'الملف الشخصي',
-                  subtitle: 'الاسم ورقم الهاتف',
-                  onTap: () {
-                    _showProfileDialog(context, core);
-                  },
-                ),
-                _SettingsTile(
-                  icon: Icons.language,
-                  title: 'اللغة',
-                  subtitle: settings.language,
-                  onTap: () {
-                    _showLanguageDialog(context, core);
-                  },
-                ),
-                _settingsSectionTitle('الخصوصية والأمان'),
-                _SwitchTile(
-                  icon: Icons.done_all,
-                  title: 'إيصالات القراءة',
-                  value: settings.readReceipts,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        readReceipts: value,
+                _SettingsSection(
+                  title: 'الحساب',
+                  children: [
+                    ListTile(
+                      leading: const Icon(
+                        Icons.person_outline,
+                        color: fahadGold,
                       ),
-                    );
-                  },
-                ),
-                _SwitchTile(
-                  icon: Icons.visibility,
-                  title: 'آخر ظهور',
-                  value: settings.lastSeenEnabled,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        lastSeenEnabled: value,
+                      title: const Text('الملف الشخصي'),
+                      subtitle: Text(
+                        core.account.name.isEmpty
+                            ? 'إضافة الاسم'
+                            : core.account.name,
                       ),
-                    );
-                  },
-                ),
-                _SwitchTile(
-                  icon: Icons.lock_outline,
-                  title: 'قفل التطبيق',
-                  value: settings.appLockEnabled,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        appLockEnabled: value,
+                      onTap: () =>
+                          _editProfile(context),
+                    ),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.language,
+                        color: fahadGold,
                       ),
-                    );
-                  },
-                ),
-                _SwitchTile(
-                  icon: Icons.chat_lock_outlined,
-                  title: 'قفل المحادثات',
-                  value: settings.chatLockEnabled,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        chatLockEnabled: value,
+                      title: const Text('اللغة'),
+                      subtitle: Text(
+                        core.settings.language,
                       ),
-                    );
-                  },
+                      onTap: () =>
+                          _chooseLanguage(context),
+                    ),
+                  ],
                 ),
-                _SwitchTile(
-                  icon: Icons.security,
-                  title: 'التحقق بخطوتين',
-                  value: settings.twoStepEnabled,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        twoStepEnabled: value,
-                      ),
-                    );
-                  },
+                _SettingsSection(
+                  title: 'الخصوصية والأمان',
+                  children: [
+                    _switchTile(
+                      'إشعارات الرسائل',
+                      Icons.notifications_none,
+                      core.settings.notifications,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            notifications: value,
+                          ),
+                        );
+                      },
+                    ),
+                    _switchTile(
+                      'إيصالات القراءة',
+                      Icons.done_all,
+                      core.settings.readReceipts,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            readReceipts: value,
+                          ),
+                        );
+                      },
+                    ),
+                    _switchTile(
+                      'آخر ظهور',
+                      Icons.visibility_outlined,
+                      core.settings.lastSeen,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            lastSeen: value,
+                          ),
+                        );
+                      },
+                    ),
+                    _switchTile(
+                      'قفل التطبيق',
+                      Icons.lock_outline,
+                      core.settings.appLock,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            appLock: value,
+                          ),
+                        );
+                      },
+                    ),
+                    _switchTile(
+                      'قفل المحادثات',
+                      Icons.lock_person_outlined,
+                      core.settings.chatLock,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            chatLock: value,
+                          ),
+                        );
+                      },
+                    ),
+                    _switchTile(
+                      'التحقق بخطوتين',
+                      Icons.verified_user_outlined,
+                      core.settings.twoStepVerification,
+                      (value) async {
+                        await core.updateSettings(
+                          core.settings.copyWith(
+                            twoStepVerification: value,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                _settingsSectionTitle('الإشعارات'),
-                _SwitchTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'الإشعارات',
-                  value: settings.notificationsEnabled,
-                  onChanged: (value) {
-                    core.updateSettings(
-                      settings.copyWith(
-                        notificationsEnabled: value,
-                      ),
-                    );
-                  },
-                ),
-                _settingsSectionTitle('البيانات'),
-                _SettingsTile(
-                  icon: Icons.storage_outlined,
+                _SettingsSection(
                   title: 'التخزين',
-                  subtitle:
-                      '${core.chats.length} دردشة • ${core.messages.length} محادثة محفوظة',
-                  onTap: () {
-                    _showStorageInfo(context, core);
-                  },
-                ),
-                _SettingsTile(
-                  icon: Icons.sync,
-                  title: 'المزامنة',
-                  subtitle: 'حالة المزامنة المحلية',
-                  onTap: () {
-                    _showInfo(
-                      context,
-                      'المزامنة',
-                      'النواة المحلية تحفظ البيانات حاليًا. سيتم ربط Firebase والمزامنة السحابية في المرحلة التالية.',
-                    );
-                  },
-                ),
-                _SettingsTile(
-                  icon: Icons.devices,
-                  title: 'الأجهزة المرتبطة',
-                  subtitle: 'إدارة الأجهزة المرتبطة بالحساب',
-                  onTap: () {
-                    _showInfo(
-                      context,
-                      'الأجهزة المرتبطة',
-                      'واجهة إدارة الأجهزة جاهزة للربط بخدمة الحساب والمزامنة.',
-                    );
-                  },
-                ),
-                const SizedBox(height: 15),
-                Card(
-                  color: const Color(0xFF351D22),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.delete_forever,
-                      color: Colors.redAccent,
+                  children: [
+                    ListTile(
+                      leading: const Icon(
+                        Icons.storage_outlined,
+                        color: fahadGold,
+                      ),
+                      title: const Text(
+                        'إدارة التخزين',
+                      ),
+                      subtitle: const Text(
+                        'البيانات المحلية محفوظة داخل التطبيق',
+                      ),
                     ),
-                    title: const Text(
-                      'مسح البيانات المحلية',
-                    ),
-                    subtitle: const Text(
-                      'سيحذف الحساب والدردشات والمجموعات والحالات والسجل من الجهاز',
-                    ),
-                    onTap: () {
-                      _confirmClearData(
-                        context,
-                        core,
-                      );
-                    },
-                  ),
+                  ],
                 ),
               ],
             );
@@ -3832,99 +3807,237 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _settingsSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 18,
-        bottom: 8,
+  Widget _switchTile(
+    String title,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return SwitchListTile(
+      secondary: Icon(
+        icon,
+        color: fahadGold,
       ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: kGold,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
+      title: Text(title),
+      value: value,
+      activeThumbColor: fahadGold,
+      onChanged: onChanged,
+    );
+  }
+
+  void _editProfile(BuildContext context) {
+    final name = TextEditingController(
+      text: core.account.name,
+    );
+    final phone = TextEditingController(
+      text: core.account.phone,
+    );
+    final about = TextEditingController(
+      text: core.account.about,
+    );
+
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('الملف الشخصي'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(
+                    labelText: 'الاسم',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الهاتف',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: about,
+                  decoration: const InputDecoration(
+                    labelText: 'نبذة',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () async {
+                await core.saveAccount(
+                  core.account.copyWith(
+                    name: name.text.trim(),
+                    phone: phone.text.trim(),
+                    about: about.text.trim(),
+                  ),
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _chooseLanguage(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: fahadPanel,
+          title: const Text('اختر اللغة'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              'العربية',
+              'English',
+            ]
+                .map(
+                  (language) => ListTile(
+                    title: Text(language),
+                    trailing:
+                        core.settings.language ==
+                                language
+                            ? const Icon(
+                                Icons.check,
+                                color: fahadGold,
+                              )
+                            : null,
+                    onTap: () async {
+                      await core.updateSettings(
+                        core.settings.copyWith(
+                          language: language,
+                        ),
+                      );
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
     );
   }
 }
 
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
+class _ProfileHeader extends StatelessWidget {
+  final AlWazirAccount account;
   final VoidCallback onTap;
 
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
+  const _ProfileHeader({
+    required this.account,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: kPanel,
-      margin: const EdgeInsets.only(bottom: 6),
+      color: fahadPanel,
       child: ListTile(
         onTap: onTap,
-        leading: Icon(
-          icon,
-          color: kGold,
-        ),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            color: Colors.white54,
+        contentPadding: const EdgeInsets.all(12),
+        leading: const CircleAvatar(
+          radius: 30,
+          backgroundColor: fahadGold,
+          foregroundColor: Colors.black,
+          child: Icon(
+            Icons.person,
+            size: 32,
           ),
+        ),
+        title: Text(
+          account.name.isEmpty
+              ? 'إضافة اسمك'
+              : account.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        subtitle: Text(
+          account.phone.isEmpty
+              ? account.about
+              : account.phone,
         ),
         trailing: const Icon(
           Icons.chevron_left,
-          color: Colors.white54,
+          color: fahadGold,
         ),
       ),
     );
   }
 }
 
-class _SwitchTile extends StatelessWidget {
-  final IconData icon;
+class _SettingsSection extends StatelessWidget {
   final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final List<Widget> children;
 
-  const _SwitchTile({
-    required this.icon,
+  const _SettingsSection({
     required this.title,
-    required this.value,
-    required this.onChanged,
+    required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: kPanel,
-      margin: const EdgeInsets.only(bottom: 6),
-      child: SwitchListTile(
-        secondary: Icon(
-          icon,
-          color: kGold,
-        ),
-        title: Text(title),
-        value: value,
-        activeThumbColor: kGold,
-        onChanged: onChanged,
+      color: fahadPanel,
+      margin:
+          const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              14,
+              16,
+              5,
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: fahadGold,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          ...children,
+        ],
       ),
     );
   }
 }
 
-/// ===============================================================
-/// CALL SCREEN
-/// ===============================================================
+/* ============================================================
+   📞 CALL SCREEN
+   ============================================================ */
 
 class CallScreen extends StatefulWidget {
   final AlWazirCore core;
@@ -3943,20 +4056,8 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  bool speaker = false;
   bool muted = false;
-  bool camera = true;
-
-  @override
-  void initState() {
-    super.initState();
-
-    widget.core.addCall(
-      name: widget.name,
-      type: widget.type,
-      direction: CallDirection.outgoing,
-    );
-  }
+  bool speaker = false;
 
   @override
   Widget build(BuildContext context) {
@@ -3968,16 +4069,13 @@ class _CallScreenState extends State<CallScreen> {
           child: Column(
             children: [
               const Spacer(),
-              CircleAvatar(
-                radius: 55,
-                backgroundColor: kGold,
+              const CircleAvatar(
+                radius: 65,
+                backgroundColor: fahadGold,
                 foregroundColor: Colors.black,
-                child: Text(
-                  widget.name.characters.first,
-                  style: const TextStyle(
-                    fontSize: 45,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Icon(
+                  Icons.person,
+                  size: 70,
                 ),
               ),
               const SizedBox(height: 20),
@@ -3997,13 +4095,6 @@ class _CallScreenState extends State<CallScreen> {
                   color: Colors.white54,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'جاري الاتصال...',
-                style: TextStyle(
-                  color: kGold,
-                ),
-              ),
               const Spacer(),
               Row(
                 mainAxisAlignment:
@@ -4013,6 +4104,7 @@ class _CallScreenState extends State<CallScreen> {
                     icon: muted
                         ? Icons.mic_off
                         : Icons.mic,
+                    label: 'كتم',
                     active: muted,
                     onTap: () {
                       setState(() {
@@ -4020,20 +4112,21 @@ class _CallScreenState extends State<CallScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 25),
                   _CallButton(
                     icon: Icons.call_end,
-                    active: true,
-                    end: true,
+                    label: 'إنهاء',
+                    danger: true,
                     onTap: () {
                       Navigator.pop(context);
                     },
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 25),
                   _CallButton(
                     icon: speaker
                         ? Icons.volume_up
                         : Icons.volume_down,
+                    label: 'مكبر',
                     active: speaker,
                     onTap: () {
                       setState(() {
@@ -4041,23 +4134,9 @@ class _CallScreenState extends State<CallScreen> {
                       });
                     },
                   ),
-                  if (widget.type == CallType.video) ...[
-                    const SizedBox(width: 20),
-                    _CallButton(
-                      icon: camera
-                          ? Icons.videocam
-                          : Icons.videocam_off,
-                      active: !camera,
-                      onTap: () {
-                        setState(() {
-                          camera = !camera;
-                        });
-                      },
-                    ),
-                  ],
                 ],
               ),
-              const SizedBox(height: 35),
+              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -4068,325 +4147,66 @@ class _CallScreenState extends State<CallScreen> {
 
 class _CallButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool active;
-  final bool end;
+  final bool danger;
   final VoidCallback onTap;
 
   const _CallButton({
     required this.icon,
-    required this.active,
+    required this.label,
+    this.active = false,
+    this.danger = false,
     required this.onTap,
-    this.end = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 27,
-      backgroundColor:
-          end ? Colors.redAccent : kPanel,
-      child: IconButton(
-        onPressed: onTap,
-        icon: Icon(
-          icon,
-          color: end || active
-              ? Colors.white
-              : kGold,
-        ),
-      ),
-    );
-  }
-}
-
-/// ===============================================================
-/// NEARBY SCREEN
-///
-/// الواجهة هنا حقيقية من ناحية حالة التطبيق، لكن الاتصال
-/// الفعلي Bluetooth/Wi-Fi Direct لم نضع له simulation.
-/// سيتم ربط nearby_connections في المرحلة التالية.
-/// ===============================================================
-
-class NearbyScreen extends StatefulWidget {
-  const NearbyScreen({
-    super.key,
-  });
-
-  @override
-  State<NearbyScreen> createState() => _NearbyScreenState();
-}
-
-class _NearbyScreenState extends State<NearbyScreen> {
-  bool searching = false;
-
-  void _toggleSearch() {
-    setState(() {
-      searching = !searching;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: kBackground,
-        appBar: AppBar(
-          backgroundColor: kAppBar,
-          title: const Text('الاتصال القريب'),
-          actions: [
-            IconButton(
-              onPressed: _toggleSearch,
-              icon: Icon(
-                searching
-                    ? Icons.stop_circle_outlined
-                    : Icons.search,
-                color: kGold,
-              ),
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(25),
-            child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration:
-                      const Duration(milliseconds: 500),
-                  width: searching ? 150 : 120,
-                  height: searching ? 150 : 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: kGold,
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    searching
-                        ? Icons.wifi_tethering
-                        : Icons.bluetooth,
-                    color: kGold,
-                    size: 60,
-                  ),
-                ),
-                const SizedBox(height: 25),
-                Text(
-                  searching
-                      ? 'جاري البحث عن أجهزة الفهد...'
-                      : 'الاتصال القريب مغلق',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'سيتم هنا ربط Bluetooth و Wi-Fi Direct للمراسلة بين الأجهزة القريبة بدون إنترنت.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white54,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kGold,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 25,
-                      vertical: 13,
-                    ),
-                  ),
-                  onPressed: _toggleSearch,
-                  icon: Icon(
-                    searching
-                        ? Icons.stop
-                        : Icons.radar,
-                  ),
-                  label: Text(
-                    searching
-                        ? 'إيقاف البحث'
-                        : 'بدء البحث',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// ===============================================================
-/// SEARCH
-/// ===============================================================
-
-class _FahadSearchDelegate
-    extends SearchDelegate<String> {
-  final AlWazirCore core;
-
-  _FahadSearchDelegate(this.core);
-
-  @override
-  ThemeData appBarTheme(BuildContext context) {
-    return ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: kBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: kAppBar,
-      ),
-      inputDecorationTheme:
-          const InputDecorationTheme(
-        hintStyle: TextStyle(
-          color: Colors.white54,
-        ),
-      ),
-    );
-  }
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      if (query.isNotEmpty)
-        IconButton(
-          onPressed: () {
-            query = '';
-          },
-          icon: const Icon(Icons.clear),
-        ),
-    ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () {
-        close(context, '');
-      },
-      icon: const Icon(Icons.arrow_back),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return _build();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return _build();
-  }
-
-  Widget _build() {
-    final value = query.trim().toLowerCase();
-
-    if (value.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.search,
-        title: 'ابحث في الفهد',
-        subtitle: 'الدردشات والمجموعات والقنوات',
-      );
-    }
-
-    final chats = core.chats.where(
-      (chat) =>
-          chat.name.toLowerCase().contains(value) ||
-          chat.phone.toLowerCase().contains(value) ||
-          chat.lastMessage.toLowerCase().contains(value),
-    );
-
-    final groups = core.groups.where(
-      (group) =>
-          group.name.toLowerCase().contains(value),
-    );
-
-    final channels = core.channels.where(
-      (channel) =>
-          channel.name.toLowerCase().contains(value) ||
-          channel.description
-              .toLowerCase()
-              .contains(value),
-    );
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        ...chats.map(
-          (chat) => ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-              child: Icon(Icons.person),
-            ),
-            title: Text(chat.name),
-            subtitle: Text(chat.lastMessage),
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: danger
+              ? Colors.redAccent
+              : active
+                  ? fahadGold
+                  : fahadPanel,
+          foregroundColor:
+              danger || active
+                  ? Colors.black
+                  : Colors.white,
+          child: IconButton(
+            onPressed: onTap,
+            icon: Icon(icon),
           ),
         ),
-        ...groups.map(
-          (group) => ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-              child: Icon(Icons.groups),
-            ),
-            title: Text(group.name),
-            subtitle: const Text('مجموعة'),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
           ),
         ),
-        ...channels.map(
-          (channel) => ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-              child: Icon(Icons.campaign),
-            ),
-            title: Text(channel.name),
-            subtitle: Text(channel.description),
-          ),
-        ),
-        if (!chats.any((_) => true) &&
-            !groups.any((_) => true) &&
-            !channels.any((_) => true))
-          const _EmptyState(
-            icon: Icons.search_off,
-            title: 'لا توجد نتائج',
-            subtitle: 'جرّب كلمة بحث أخرى',
-          ),
       ],
     );
   }
 }
 
-/// ===============================================================
-/// CHAT SEARCH
-/// ===============================================================
+/* ============================================================
+   🔎 SEARCH
+   ============================================================ */
 
-class _ChatSearchDelegate
-    extends SearchDelegate<String> {
+class FahadSearchDelegate
+    extends SearchDelegate<void> {
   final AlWazirCore core;
-  final String chatId;
 
-  _ChatSearchDelegate(
-    this.core,
-    this.chatId,
-  );
+  FahadSearchDelegate(this.core);
 
   @override
-  ThemeData appBarTheme(BuildContext context) {
-    return ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: kBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: kAppBar,
-      ),
-    );
-  }
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
+  List<Widget>? buildActions(
+    BuildContext context,
+  ) {
     return [
       if (query.isNotEmpty)
         IconButton(
@@ -4399,72 +4219,74 @@ class _ChatSearchDelegate
   }
 
   @override
-  Widget? buildLeading(BuildContext context) {
+  Widget? buildLeading(
+    BuildContext context,
+  ) {
     return IconButton(
-      onPressed: () {
-        close(context, '');
-      },
+      onPressed: () => close(context, null),
       icon: const Icon(Icons.arrow_back),
     );
   }
 
   @override
-  Widget buildResults(BuildContext context) {
-    return _results();
+  Widget buildResults(
+    BuildContext context,
+  ) {
+    final q = query.trim().toLowerCase();
+
+    final results = core.chats.where(
+      (chat) =>
+          chat.name.toLowerCase().contains(q) ||
+          chat.phone.toLowerCase().contains(q) ||
+          chat.lastMessage
+              .toLowerCase()
+              .contains(q),
+    );
+
+    return Container(
+      color: fahadBackground,
+      child: ListView(
+        children: results.map(
+          (chat) {
+            return ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: fahadGold,
+                foregroundColor: Colors.black,
+                child: Icon(Icons.person),
+              ),
+              title: Text(chat.name),
+              subtitle: Text(chat.lastMessage),
+              onTap: () {
+                close(context, null);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatRoomScreen(
+                      core: core,
+                      chatId: chat.id,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ).toList(),
+      ),
+    );
   }
 
   @override
-  Widget buildSuggestions(BuildContext context) {
-    return _results();
-  }
-
-  Widget _results() {
-    final value = query.trim().toLowerCase();
-
-    final messages = core
-        .chatMessages(chatId)
-        .where(
-          (message) =>
-              value.isEmpty ||
-              message.text.toLowerCase().contains(value),
-        )
-        .toList();
-
-    if (messages.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.search_off,
-        title: 'لا توجد رسائل',
-        subtitle: 'لم يتم العثور على نتيجة',
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: messages.length,
-      itemBuilder: (context, index) {
-        final message = messages[index];
-
-        return Card(
-          color: kPanel,
-          child: ListTile(
-            title: Text(
-              message.deletedForEveryone
-                  ? 'تم حذف الرسالة'
-                  : message.text,
-            ),
-            subtitle: Text(
-              _dateTimeText(message.createdAt),
-            ),
-          ),
-        );
-      },
-    );
+  Widget buildSuggestions(
+    BuildContext context,
+  ) {
+    return buildResults(context);
   }
 }
 
-/// ===============================================================
-/// EMPTY STATE
-/// ===============================================================
+/* ============================================================
+   🧩 EMPTY STATE
+   ============================================================ */
 
 class _EmptyState extends StatelessWidget {
   final IconData icon;
@@ -4484,20 +4306,16 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(30),
+      child: Padding(
+        padding: const EdgeInsets.all(25),
         child: Column(
           mainAxisAlignment:
               MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 42,
-              backgroundColor: kPanel,
-              child: Icon(
-                icon,
-                size: 42,
-                color: kGold,
-              ),
+            Icon(
+              icon,
+              size: 65,
+              color: fahadGold,
             ),
             const SizedBox(height: 18),
             Text(
@@ -4521,7 +4339,7 @@ class _EmptyState extends StatelessWidget {
               const SizedBox(height: 22),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kGold,
+                  backgroundColor: fahadGold,
                   foregroundColor: Colors.black,
                 ),
                 onPressed: onAction,
@@ -4535,676 +4353,22 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// ===============================================================
-/// DIALOGS / HELPERS
-/// ===============================================================
+/* ============================================================
+   🕐 HELPERS
+   ============================================================ */
 
-Future<void> _showNewChatDialog(
-  BuildContext context,
-  AlWazirCore core,
-) async {
-  final nameController = TextEditingController();
-  final phoneController = TextEditingController();
+String _formatTime(DateTime? time) {
+  if (time == null) return '';
 
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('دردشة جديدة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'اسم الشخص',
-              ),
-            ),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'رقم الهاتف',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              final name =
-                  nameController.text.trim();
+  final hour = time.hour;
+  final minute =
+      time.minute.toString().padLeft(2, '0');
 
-              if (name.isEmpty) return;
+  final period =
+      hour >= 12 ? 'م' : 'ص';
 
-              final chat = await core.createChat(
-                name: name,
-                phone: phoneController.text.trim(),
-              );
+  final displayHour =
+      hour % 12 == 0 ? 12 : hour % 12;
 
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatRoomScreen(
-                      core: core,
-                      chatId: chat.id,
-                    ),
-                  ),
-                );
-              }
-            },
-            child: const Text('بدء'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _showChatOptions(
-  BuildContext context,
-  AlWazirCore core,
-  AlWazirChat chat,
-) async {
-  await showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: kPanel,
-    builder: (context) {
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.push_pin,
-                color: kGold,
-              ),
-              title: Text(
-                chat.pinned
-                    ? 'إلغاء تثبيت'
-                    : 'تثبيت',
-              ),
-              onTap: () async {
-                await core.toggleChatFlag(
-                  chat.id,
-                  pinned: !chat.pinned,
-                );
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.volume_off,
-                color: kGold,
-              ),
-              title: Text(
-                chat.muted
-                    ? 'إلغاء الكتم'
-                    : 'كتم',
-              ),
-              onTap: () async {
-                await core.toggleChatFlag(
-                  chat.id,
-                  muted: !chat.muted,
-                );
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.lock_outline,
-                color: kGold,
-              ),
-              title: Text(
-                chat.locked
-                    ? 'إلغاء قفل المحادثة'
-                    : 'قفل المحادثة',
-              ),
-              onTap: () async {
-                await core.toggleChatFlag(
-                  chat.id,
-                  locked: !chat.locked,
-                );
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Future<void> _showCreateGroupDialog(
-  BuildContext context,
-  AlWazirCore core,
-) async {
-  final controller = TextEditingController();
-
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text(
-          'إنشاء مجموعة',
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'اسم المجموعة',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              final name =
-                  controller.text.trim();
-
-              if (name.isEmpty) return;
-
-              await core.createGroup(
-                name: name,
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('إنشاء'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showGroupInfo(
-  BuildContext context,
-  AlWazirGroup group,
-) {
-  showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: kPanel,
-    builder: (context) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircleAvatar(
-                radius: 32,
-                backgroundColor: kGold,
-                foregroundColor: Colors.black,
-                child: Icon(
-                  Icons.groups,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                group.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                '${group.members.length} عضو',
-                style: const TextStyle(
-                  color: Colors.white54,
-                ),
-              ),
-              const SizedBox(height: 18),
-              ListTile(
-                leading: const Icon(
-                  Icons.person_add,
-                  color: kGold,
-                ),
-                title: const Text('إضافة أعضاء'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showInfo(
-                    context,
-                    'أعضاء المجموعة',
-                    'سيتم ربط اختيار جهات الاتصال والمزامنة في المرحلة التالية.',
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.admin_panel_settings,
-                  color: kGold,
-                ),
-                title: const Text('المشرفون'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-void _showStatusDialog(
-  BuildContext context,
-  AlWazirCore core,
-) {
-  final controller = TextEditingController();
-
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('إضافة حالة'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            hintText: 'اكتب حالتك...',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              final text =
-                  controller.text.trim();
-
-              if (text.isEmpty) return;
-
-              await core.createStatus(
-                text: text,
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('نشر'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showStatusView(
-  BuildContext context,
-  AlWazirStatus status,
-) {
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: Text(status.ownerName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              status.text,
-              style: const TextStyle(
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              '${status.views} مشاهدة',
-              style: const TextStyle(
-                color: Colors.white54,
-              ),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'الحالة تنتهي تلقائيًا بعد 24 ساعة.',
-              style: TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إغلاق'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showChannelPostDialog(
-  BuildContext context,
-  AlWazirCore core,
-  String channelId,
-) {
-  final controller = TextEditingController();
-
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('منشور جديد'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            hintText: 'اكتب المنشور...',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              final text =
-                  controller.text.trim();
-
-              if (text.isEmpty) return;
-
-              await core.addChannelPost(
-                channelId: channelId,
-                text: text,
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('نشر'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showProfileDialog(
-  BuildContext context,
-  AlWazirCore core,
-) {
-  final nameController = TextEditingController(
-    text: core.account.name,
-  );
-
-  final phoneController = TextEditingController(
-    text: core.account.phone,
-  );
-
-  final countryController = TextEditingController(
-    text: core.account.countryCode,
-  );
-
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('الملف الشخصي'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'الاسم',
-              ),
-            ),
-            TextField(
-              controller: countryController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'مفتاح الدولة',
-              ),
-            ),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'رقم الهاتف',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGold,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              final old = core.account;
-
-              await core.saveAccount(
-                old.copyWith(
-                  id: old.id.isEmpty
-                      ? _newId()
-                      : old.id,
-                  name: nameController.text.trim(),
-                  countryCode:
-                      countryController.text.trim(),
-                  phone:
-                      phoneController.text.trim(),
-                  createdAt:
-                      old.createdAt ?? DateTime.now(),
-                ),
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showLanguageDialog(
-  BuildContext context,
-  AlWazirCore core,
-) {
-  const languages = [
-    'العربية',
-    'English',
-  ];
-
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('اللغة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: languages.map(
-            (language) {
-              return ListTile(
-                title: Text(language),
-                trailing:
-                    core.settings.language == language
-                        ? const Icon(
-                            Icons.check,
-                            color: kGold,
-                          )
-                        : null,
-                onTap: () async {
-                  await core.updateSettings(
-                    core.settings.copyWith(
-                      language: language,
-                    ),
-                  );
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                },
-              );
-            },
-          ).toList(),
-        ),
-      );
-    },
-  );
-}
-
-void _showStorageInfo(
-  BuildContext context,
-  AlWazirCore core,
-) {
-  final messageCount = core.messages.values.fold<int>(
-    0,
-    (sum, list) => sum + list.length,
-  );
-
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text('التخزين'),
-        content: Text(
-          'الدردشات: ${core.chats.length}\n'
-          'الرسائل: $messageCount\n'
-          'المجموعات: ${core.groups.length}\n'
-          'الحالات: ${core.statuses.length}\n'
-          'القنوات: ${core.channels.length}\n'
-          'المكالمات: ${core.calls.length}\n\n'
-          'البيانات الأساسية محفوظة محليًا على الجهاز.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إغلاق'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _confirmClearData(
-  BuildContext context,
-  AlWazirCore core,
-) {
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: const Text(
-          'مسح البيانات؟',
-        ),
-        content: const Text(
-          'سيتم حذف البيانات المحلية من الجهاز. هذا الإجراء لا يمكن التراجع عنه.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              await core.clearLocalData();
-
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('حذف'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-void _showInfo(
-  BuildContext context,
-  String title,
-  String message,
-) {
-  showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: kPanel,
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('حسنًا'),
-          ),
-        ],
-      );
-    },
-  );
+  return '$displayHour:$minute $period';
 }
