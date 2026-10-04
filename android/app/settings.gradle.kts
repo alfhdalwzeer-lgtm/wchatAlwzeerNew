@@ -3,7 +3,9 @@ pluginManagement {
         val properties = java.util.Properties()
         file("local.properties").inputStream().use { properties.load(it) }
         val flutterSdkPath = properties.getProperty("flutter.sdk")
-        require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+        require(flutterSdkPath != null) {
+            "flutter.sdk not set in local.properties"
+        }
         flutterSdkPath
     }
 
@@ -21,5 +23,16 @@ plugins {
     id("com.android.application") version "8.9.1" apply false
     id("org.jetbrains.kotlin.android") version "2.2.20" apply false
 }
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Alwazir-chat-App"
 
 include(":app")
